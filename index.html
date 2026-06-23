@@ -18,7 +18,7 @@
       <li><a href="#" onclick="showPage('home');scrollTo2('services');return false">Services</a></li>
       <li><a href="#" onclick="showPage('home');scrollTo2('portfolio');return false">Portfolio</a></li>
       <li><a href="#" onclick="showPage('home');scrollTo2('how');return false">How It Works</a></li>
-      <li><a href="#" onclick="showPage('client');return false">Client</a></li>
+      <li><a href="#" onclick="goClient();return false">Client</a></li>
       <li><a href="#" onclick="showPage('admin');return false">Admin</a></li>
       <li><a href="#" class="ncta" onclick="openModal();return false">Start Project</a></li>
     </ul>
@@ -29,7 +29,7 @@
   <a href="#" onclick="showPage('home');toggleMM();return false">🏠 Home</a>
   <a href="#" onclick="showPage('home');scrollTo2('services');toggleMM();return false">Services</a>
   <a href="#" onclick="showPage('home');scrollTo2('portfolio');toggleMM();return false">Portfolio</a>
-  <a href="#" onclick="showPage('client');toggleMM();return false">Client Dashboard</a>
+  <a href="#" onclick="goClient();toggleMM();return false">Client Dashboard</a>
   <a href="#" onclick="showPage('admin');toggleMM();return false">Admin Dashboard</a>
   <a href="#" class="ncta" onclick="openModal();toggleMM();return false">Start Project</a>
 </div>
@@ -235,7 +235,7 @@
   <div class="ctabtns">
     <a href="#" class="ba" onclick="openModal();return false">▶ Start Your Project</a>
     <a href="#" class="bw" onclick="openChat();return false">💬 Talk to an Analyst</a>
-    <a href="#" class="bw" onclick="showPage('client');return false">👤 Client Login</a>
+    <a href="#" class="bw" onclick="goClient();return false">👤 Client Login</a>
   </div>
 </section>
 
@@ -259,7 +259,7 @@
         <li><a href="tel:+254748216918">+254 748 216 918</a></li>
         <li><a href="mailto:hello@databridge.co.ke">hello@databridge.co.ke</a></li>
         <li><a href="#">WhatsApp Us</a></li>
-        <li><a href="#" onclick="showPage('client');return false">Client Login</a></li>
+        <li><a href="#" onclick="goClient();return false">Client Login</a></li>
         <li><a href="#" onclick="showPage('admin');return false">Admin Dashboard</a></li>
         <li><a href="#">Privacy Policy</a></li></ul></div>
     </div>
@@ -270,6 +270,36 @@
   </div>
 </footer>
 </div><!-- end home -->
+<!-- ══════════ CLIENT AUTH (LOGIN / SIGNUP) ══════════ -->
+<div id="page-clientauth" class="page">
+  <div class="authwrap">
+    <div class="authbox">
+      <div class="authlogo">Data<span>Bridge</span></div>
+      <div class="authtabs">
+        <button class="authtab on" id="atab-login" onclick="authSwitch('login')">Log In</button>
+        <button class="authtab" id="atab-signup" onclick="authSwitch('signup')">Create Account</button>
+      </div>
+      <div id="authpane-login">
+        <p class="authsub">Welcome back — log in to track your orders.</p>
+        <div class="fg"><label>Email Address</label><input type="email" id="li_email" placeholder="your@email.com"/></div>
+        <div class="fg"><label>Password</label><input type="password" id="li_pass" placeholder="••••••••"/></div>
+        <p id="authError" style="color:#D13438;font-size:.8rem;display:none;margin-bottom:.6rem"></p>
+        <button class="bp" style="width:100%" onclick="clientLogin()">Log In</button>
+        <p class="authswitch">No account? <a href="#" onclick="authSwitch('signup');return false">Create one</a></p>
+      </div>
+      <div id="authpane-signup" style="display:none">
+        <p class="authsub">Create your DataBridge account to submit and track orders.</p>
+        <div class="frow"><div class="fg"><label>Full Name</label><input type="text" id="su_name" placeholder="Your full name"/></div><div class="fg"><label>Phone</label><input type="tel" id="su_phone" placeholder="+254 7XX XXX XXX"/></div></div>
+        <div class="fg"><label>Email Address</label><input type="email" id="su_email" placeholder="your@email.com"/></div>
+        <div class="fg"><label>Password</label><input type="password" id="su_pass" placeholder="Create a password"/></div>
+        <p id="authError2" style="color:#D13438;font-size:.8rem;display:none;margin-bottom:.6rem"></p>
+        <button class="bp" style="width:100%" onclick="clientSignup()">Create Account</button>
+        <p class="authswitch">Already have an account? <a href="#" onclick="authSwitch('login');return false">Log in</a></p>
+      </div>
+      <p class="authback"><a href="#" onclick="showPage('home');return false">← Back to website</a></p>
+    </div>
+  </div>
+</div>
 <!-- ══════════ CLIENT DASHBOARD ══════════ -->
 <div id="page-client" class="page">
 <div class="dlayout">
@@ -286,12 +316,13 @@
     <div class="ssep"></div>
     <button class="snav" onclick="showPage('analyst')"><span class="sni">🔬</span>Analyst Portal</button>
     <button class="snav" onclick="openModal()"><span class="sni">➕</span>New Order</button>
+    <button class="snav" onclick="clientLogout()"><span class="sni">🚪</span>Log Out</button>
     <button class="snav" onclick="showPage('home')"><span class="sni">🏠</span>Back to Website</button>
   </div>
   <div class="dmain">
     <div class="dtop">
       <div class="dtitle" id="cTabTitle">Client Overview</div>
-      <div class="dusr"><div class="dav">AM</div><div class="duname">Amina Mwangi</div></div>
+      <div class="dusr"><div class="dav" id="cUserAvatar">AM</div><div class="duname" id="cUserName">Amina Mwangi</div></div>
     </div>
     <div class="dcontent">
       <!-- OVERVIEW (Power BI themed live dashboard) -->
@@ -353,6 +384,13 @@
       </div>
       <!-- ORDERS -->
       <div id="ctab-orders" style="display:none">
+        <div class="dtw" style="margin-bottom:1.2rem">
+          <div class="dth"><h3>My Submitted Orders</h3></div>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Order ID</th><th>Project</th><th>Tool</th><th>Analyst</th><th>Deadline</th><th>Total</th><th>Status</th></tr></thead>
+            <tbody id="myOrdersBody"><tr><td colspan="7" style="text-align:center;color:var(--sl);padding:1.4rem">Log in to see your submitted orders here.</td></tr></tbody>
+          </table></div>
+        </div>
         <div class="filt">
           <button class="fb2 on" onclick="filt(this,'all')">All</button>
           <button class="fb2" onclick="filt(this,'prog')">In Progress</button>
@@ -369,7 +407,7 @@
             <div class="odf"><label>Service</label><p>Quantitative Analysis</p></div>
             <div class="odf"><label>Tool</label><p>SPSS (IBM SPSS Statistics 27)</p></div>
             <div class="odf"><label>Report Format</label><p>APA 7th Edition</p></div>
-            <div class="odf"><label>Assigned Analyst</label><p>Dr. James Kariuki</p></div>
+            <div class="odf"><label>Assigned Analyst</label><p>Henry G. Michuku</p></div>
             <div class="odf"><label>Payment Status</label><p>Deposit paid KES 12,500 | Balance: KES 12,500</p></div>
           </div>
           <div style="margin-top:.9rem;display:flex;gap:.65rem;flex-wrap:wrap">
@@ -388,7 +426,7 @@
             <div class="odf"><label>Service</label><p>Quantitative Analysis + Visualisation</p></div>
             <div class="odf"><label>Tool</label><p>Python (pandas, scikit-learn, matplotlib)</p></div>
             <div class="odf"><label>Report Format</label><p>Custom Corporate Format</p></div>
-            <div class="odf"><label>Analyst</label><p>Mercy Otieno</p></div>
+            <div class="odf"><label>Analyst</label><p>Simon Macharia</p></div>
             <div class="odf"><label>Payment</label><p>Deposit paid KES 18,000 | Balance: KES 18,000</p></div>
           </div>
           <div style="margin-top:.9rem;display:flex;gap:.65rem;flex-wrap:wrap">
@@ -401,7 +439,7 @@
       <!-- MESSAGES -->
       <div id="ctab-messages" style="display:none">
         <div class="dtw" style="max-width:700px">
-          <div class="dth"><h3>Chat — DB-2025-001 | Dr. James Kariuki</h3></div>
+          <div class="dth"><h3>Chat — DB-2025-001 | Henry G. Michuku</h3></div>
           <div class="cmsgs" id="clientMsgs" style="height:280px;padding:1.2rem">
             <div class="msg a">Hi Amina, I've reviewed your dataset. I'll run a multiple linear regression with 4 predictors. Draft by Thursday.</div>
             <div class="msg c">Thank you! Please include a normality test and check for multicollinearity too.</div>
@@ -443,7 +481,7 @@
         <div class="dtw">
           <div class="dth"><h3>Notifications</h3><div class="dtha"><button class="db1 dbb">Mark All Read</button></div></div>
           <div style="padding:0">
-            <div style="padding:.9rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.9rem;background:#FFF8E1"><span style="font-size:1.2rem">📤</span><div style="flex:1"><strong style="font-size:.85rem">Draft uploaded for DB-2025-001</strong><div style="font-size:.76rem;color:var(--sl)">Dr. James Kariuki uploaded your draft. Review and send feedback. · 2 hours ago</div></div><button class="db1 dba" onclick="cTab('docs',null)">View</button></div>
+            <div style="padding:.9rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.9rem;background:#FFF8E1"><span style="font-size:1.2rem">📤</span><div style="flex:1"><strong style="font-size:.85rem">Draft uploaded for DB-2025-001</strong><div style="font-size:.76rem;color:var(--sl)">Henry G. Michuku uploaded your draft. Review and send feedback. · 2 hours ago</div></div><button class="db1 dba" onclick="cTab('docs',null)">View</button></div>
             <div style="padding:.9rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.9rem"><span style="font-size:1.2rem">💳</span><div style="flex:1"><strong style="font-size:.85rem">Deposit confirmed — DB-2025-001</strong><div style="font-size:.76rem;color:var(--sl)">KES 12,500 received via M-Pesa. Order confirmed. · 12 Jun 2025</div></div><button class="db1 dbb" onclick="cTab('invoices',null)">Receipt</button></div>
             <div style="padding:.9rem 1.4rem;display:flex;align-items:center;gap:.9rem"><span style="font-size:1.2rem">🆕</span><div style="flex:1"><strong style="font-size:.85rem">Account created successfully</strong><div style="font-size:.76rem;color:var(--sl)">Welcome to DataBridge! Your account is ready. · 1 Jun 2025</div></div></div>
           </div>
@@ -486,7 +524,7 @@
   <div class="dmain">
     <div class="dtop">
       <div class="dtitle" id="anTabTitle">Analyst Dashboard</div>
-      <div class="dusr"><div class="dav" style="background:#7B1FA2">JK</div><div class="duname">Dr. James Kariuki</div></div>
+      <div class="dusr"><div class="dav" style="background:#7B1FA2">HM</div><div class="duname">Henry G. Michuku</div></div>
     </div>
     <div class="dcontent">
       <!-- OVERVIEW -->
@@ -600,8 +638,8 @@
       <div id="antab-profile" style="display:none">
         <div class="odtl" style="max-width:560px">
           <h3 style="font-family:var(--fd);font-size:1rem;margin-bottom:1.1rem">Analyst Profile</h3>
-          <div class="frow"><div class="fg"><label>Full Name</label><input type="text" value="Dr. James Kariuki"/></div><div class="fg"><label>Email</label><input type="email" value="james@databridge.co.ke"/></div></div>
-          <div class="frow"><div class="fg"><label>Phone</label><input type="tel" value="+254 700 111 222"/></div><div class="fg"><label>Role</label><input type="text" value="Senior Analyst" readonly/></div></div>
+          <div class="frow"><div class="fg"><label>Full Name</label><input type="text" value="Henry G. Michuku"/></div><div class="fg"><label>Email</label><input type="email" value="henry@databridge.co.ke"/></div></div>
+          <div class="frow"><div class="fg"><label>Phone</label><input type="tel" value="+254 700 111 222"/></div><div class="fg"><label>Role</label><input type="text" value="Principal Data Analyst" readonly/></div></div>
           <div class="fg"><label>Specialisation</label><input type="text" value="Quantitative Analysis, Econometrics, Health Research"/></div>
           <div class="fg"><label>Tools Proficiency</label><input type="text" value="SPSS, Stata, R, Excel"/></div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.9rem;margin-top:.5rem;padding:.9rem;background:var(--bl);border-radius:10px">
@@ -639,7 +677,7 @@
   <div class="dmain">
     <div class="dtop">
       <div class="dtitle" id="adTabTitle">Admin Overview</div>
-      <div class="dusr"><div class="dav" style="background:var(--am);color:#0D1B2A">AD</div><div class="duname">Admin — DataBridge</div></div>
+      <div class="dusr"><div class="dav" style="background:#0D47A1;color:#fff">HM</div><div class="duname">Henry G Michuku — Admin</div></div>
     </div>
     <div class="dcontent">
       <!-- OVERVIEW -->
@@ -689,9 +727,9 @@
           <div class="dth"><h3>Recent Activity</h3><div class="dtha"><button class="db1 dbb">View All</button></div></div>
           <div style="padding:0">
             <div style="padding:.85rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem;background:#FFF8E1"><span>🆕</span><div style="flex:1"><strong style="font-size:.84rem">New client registered — John Kamau</strong><div style="font-size:.75rem;color:var(--sl)">10 minutes ago · john@email.com · +254 733 000 000</div></div><button class="db1 dbb" onclick="adTab('clients',null)">View</button></div>
-            <div style="padding:.85rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem;background:#FFF3F3"><span>⚠️</span><div style="flex:1"><strong style="font-size:.84rem">Deadline in 24hrs — DB-2025-001</strong><div style="font-size:.75rem;color:var(--sl)">Analyst: Dr. James Kariuki · Client: Amina Mwangi</div></div><button class="db1 dbc" onclick="adTab('orders',null)">Alert</button></div>
+            <div style="padding:.85rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem;background:#FFF3F3"><span>⚠️</span><div style="flex:1"><strong style="font-size:.84rem">Deadline in 24hrs — DB-2025-001</strong><div style="font-size:.75rem;color:var(--sl)">Analyst: Henry G. Michuku · Client: Amina Mwangi</div></div><button class="db1 dbc" onclick="adTab('orders',null)">Alert</button></div>
             <div style="padding:.85rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem"><span>💳</span><div style="flex:1"><strong style="font-size:.84rem">Deposit received — DB-2025-008</strong><div style="font-size:.75rem;color:var(--sl)">KES 18,000 via M-Pesa · Sarah Njoki · 2 hours ago</div></div><button class="db1 dbb">Receipt</button></div>
-            <div style="padding:.85rem 1.4rem;display:flex;align-items:center;gap:.85rem"><span>📤</span><div style="flex:1"><strong style="font-size:.84rem">Draft uploaded — DB-2025-003</strong><div style="font-size:.75rem;color:var(--sl)">Mercy Otieno uploaded final draft · 3 hours ago</div></div><button class="db1 dbb">View</button></div>
+            <div style="padding:.85rem 1.4rem;display:flex;align-items:center;gap:.85rem"><span>📤</span><div style="flex:1"><strong style="font-size:.84rem">Draft uploaded — DB-2025-003</strong><div style="font-size:.75rem;color:var(--sl)">Simon Macharia uploaded final draft · 3 hours ago</div></div><button class="db1 dbb">View</button></div>
           </div>
         </div>
       </div>
@@ -745,7 +783,7 @@
             <div class="fg"><label>Deadline</label><input type="date" id="np_deadline"/></div>
             <div class="fg"><label>Budget (KES)</label><input type="number" id="np_budget" placeholder="25000"/></div>
             <div class="fg"><label>Assigned Analyst</label>
-              <select id="np_analyst"><option>Dr. James Kariuki</option><option>Mercy Otieno</option><option>Unassigned</option></select>
+              <select id="np_analyst"><option>Henry G Michuku</option><option>Simon Macharia</option><option>Joseph Machuki</option><option>Mercy Otieno</option><option>Unassigned</option></select>
             </div>
             <div class="fg"><label>Status</label>
               <select id="np_status"><option>Pending</option><option>In Progress</option><option>Draft Review</option><option>Completed</option><option>Overdue</option></select>
@@ -817,9 +855,25 @@
           </div>
         </div>
         <div class="dtw">
-          <div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Specialisation</th><th>Tools</th><th>Active</th><th>Completed</th><th>Rating</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-            <tr><td><strong>Dr. James Kariuki</strong></td><td>james@databridge.co.ke</td><td>Quantitative</td><td>SPSS, Stata, R</td><td>4</td><td>28</td><td>⭐ 4.9</td><td><span class="badge b-dn">Active</span></td><td><button class="db1 dbb">Edit</button> <button class="db1 dbc">Deactivate</button></td></tr>
-            <tr><td><strong>Mercy Otieno</strong></td><td>mercy@databridge.co.ke</td><td>Data Science</td><td>Python, R</td><td>3</td><td>15</td><td>⭐ 4.8</td><td><span class="badge b-dn">Active</span></td><td><button class="db1 dbb">Edit</button> <button class="db1 dbc">Deactivate</button></td></tr>
+          <div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Specialisation</th><th>Tools</th><th>Active</th><th>Completed</th><th>Rating</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+            <tr style="background:#EEF4FB;border-left:3px solid #0D47A1">
+              <td>
+                <strong>Henry G Michuku</strong>
+                <span class="badge" style="background:#E3F2FD;color:#0D47A1;margin-left:.4rem;font-size:.63rem">ADMIN</span>
+                <br/><span style="font-size:.7rem;color:var(--sl)">Principle Data Analyst</span>
+              </td>
+              <td>gitauhenry467@gmail.com</td>
+              <td>+254796701659</td>
+              <td>Quantitative, Econometrics, Statistics</td>
+              <td>SPSS, Stata, R, Python</td>
+              <td>—</td><td>—</td><td>—</td>
+              <td><span class="badge b-dn">Active</span></td>
+              <td>
+                <button class="db1 dbb" onclick="alert('Henry G Michuku\nRole: Principle Data Analyst\nEmail: gitauhenry467@gmail.com\nPhone: +254796701659\n\nThis account has Admin access and can assign work to all analysts.')">View</button>
+              </td>
+            </tr>
+            <tr><td><strong>Simon Macharia</strong><br/><span style="font-size:.7rem;color:var(--sl)">Chief Analyst</span></td><td>simon@databridge.co.ke</td><td>+254 700 222 333</td><td>Data Science</td><td>Python, R</td><td>3</td><td>15</td><td>⭐ 4.8</td><td><span class="badge b-dn">Active</span></td><td><button class="db1 dbb">Edit</button> <button class="db1 dbc">Deactivate</button></td></tr>
+            <tr><td><strong>Joseph Machuki</strong><br/><span style="font-size:.7rem;color:var(--sl)">Economist &amp; Statistician</span></td><td>joseph@databridge.co.ke</td><td>+254 700 444 555</td><td>Econometrics, Statistics</td><td>Stata, SPSS</td><td>2</td><td>19</td><td>⭐ 5.0</td><td><span class="badge b-dn">Active</span></td><td><button class="db1 dbb">Edit</button> <button class="db1 dbc">Deactivate</button></td></tr>
           </tbody></table></div>
         </div>
       </div>
@@ -862,9 +916,9 @@
           <div class="dth"><h3>Notification Centre</h3><div class="dtha"><button class="db1 dbb">Mark All Read</button></div></div>
           <div style="padding:0">
             <div style="padding:.88rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem;background:#FFF8E1"><span>🆕</span><div style="flex:1"><strong style="font-size:.84rem">New client registered — John Kamau</strong><div style="font-size:.75rem;color:var(--sl)">10 min ago · john@email.com · +254 733 000 000 · Kenya</div></div><button class="db1 dbb">View</button></div>
-            <div style="padding:.88rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem;background:#FFF3F3"><span>⚠️</span><div style="flex:1"><strong style="font-size:.84rem">Deadline in 24hrs — DB-2025-001</strong><div style="font-size:.75rem;color:var(--sl)">Analyst: Dr. James Kariuki · Client: Amina Mwangi · Due: Today 11:59 PM</div></div><button class="db1 dbc">Alert Analyst</button></div>
+            <div style="padding:.88rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem;background:#FFF3F3"><span>⚠️</span><div style="flex:1"><strong style="font-size:.84rem">Deadline in 24hrs — DB-2025-001</strong><div style="font-size:.75rem;color:var(--sl)">Analyst: Henry G. Michuku · Client: Amina Mwangi · Due: Today 11:59 PM</div></div><button class="db1 dbc">Alert Analyst</button></div>
             <div style="padding:.88rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem"><span>💳</span><div style="flex:1"><strong style="font-size:.84rem">Deposit received — DB-2025-008</strong><div style="font-size:.75rem;color:var(--sl)">Sarah Njoki paid KES 18,000 via M-Pesa · 2 hours ago</div></div><button class="db1 dbb">Receipt</button></div>
-            <div style="padding:.88rem 1.4rem;display:flex;align-items:center;gap:.85rem"><span>📤</span><div style="flex:1"><strong style="font-size:.84rem">Draft uploaded — DB-2025-003</strong><div style="font-size:.75rem;color:var(--sl)">Mercy Otieno uploaded draft for Sarah Njoki · 3 hours ago</div></div><button class="db1 dbb">View</button></div>
+            <div style="padding:.88rem 1.4rem;display:flex;align-items:center;gap:.85rem"><span>📤</span><div style="flex:1"><strong style="font-size:.84rem">Draft uploaded — DB-2025-003</strong><div style="font-size:.75rem;color:var(--sl)">Simon Macharia uploaded draft for Sarah Njoki · 3 hours ago</div></div><button class="db1 dbb">View</button></div>
           </div>
         </div>
       </div>
