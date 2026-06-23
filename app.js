@@ -235,7 +235,7 @@ function mNext(){
     submitOrder()
   }
 }
-// Formspree endpoint — replace YOUR_FORM_ID with the ID from your Formspree dashboard (https://formspree.io)
+// Formspree endpoint — connected to gitauhenry467@gmail.com via https://formspree.io/f/xeeboeqy
 const FORMSPREE_ENDPOINT='https://formspree.io/f/xeeboeqy'
 function submitOrder(){
   const v=id=>{const el=document.getElementById(id);return el?el.value:''}
