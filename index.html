@@ -6,7 +6,7 @@
 <title>DataBridge — Data Analysis & Research Services</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="style.css">
-<script src="app.js" defer></script>
+ <script src="app.js" defer></script>
 </head>
 <body>
 <!-- NAV -->
@@ -18,9 +18,7 @@
       <li><a href="#" onclick="showPage('home');scrollTo2('services');return false">Services</a></li>
       <li><a href="#" onclick="showPage('home');scrollTo2('portfolio');return false">Portfolio</a></li>
       <li><a href="#" onclick="showPage('home');scrollTo2('how');return false">How It Works</a></li>
-      <li><a href="#" onclick="showPage('home');scrollTo2('tracker');return false">Tracker</a></li>
       <li><a href="#" onclick="showPage('client');return false">Client</a></li>
-      <li><a href="#" onclick="showPage('analyst');return false">Analyst</a></li>
       <li><a href="#" onclick="showPage('admin');return false">Admin</a></li>
       <li><a href="#" class="ncta" onclick="openModal();return false">Start Project</a></li>
     </ul>
@@ -31,9 +29,7 @@
   <a href="#" onclick="showPage('home');toggleMM();return false">🏠 Home</a>
   <a href="#" onclick="showPage('home');scrollTo2('services');toggleMM();return false">Services</a>
   <a href="#" onclick="showPage('home');scrollTo2('portfolio');toggleMM();return false">Portfolio</a>
-  <a href="#" onclick="showPage('home');scrollTo2('tracker');toggleMM();return false">Project Tracker</a>
   <a href="#" onclick="showPage('client');toggleMM();return false">Client Dashboard</a>
-  <a href="#" onclick="showPage('analyst');toggleMM();return false">Analyst Portal</a>
   <a href="#" onclick="showPage('admin');toggleMM();return false">Admin Dashboard</a>
   <a href="#" class="ncta" onclick="openModal();toggleMM();return false">Start Project</a>
 </div>
@@ -95,10 +91,38 @@
     <span class="ey">Simple Process</span>
     <h2 class="st">From raw data to real insights</h2>
     <p class="ss">Three clear steps — whether you already have data or need us to collect it from scratch.</p>
-    <div class="hwgd">
-      <div class="hwc fu"><div class="hwcic">📋</div><h3>1. Submit your project</h3><p>Select service type, tool preference, report format, and deadline. Upload your dataset or request data collection. Chat with an analyst to align on scope before starting.</p></div>
-      <div class="hwc fu" style="transition-delay:.1s"><div class="hwcic">🔬</div><h3>2. We analyse your data</h3><p>Your assigned analyst works using SPSS, Stata, R, or Python. Track progress in real time, communicate directly through your dashboard, and stay updated at every stage.</p></div>
-      <div class="hwc fu" style="transition-delay:.2s"><div class="hwcic">📊</div><h3>3. Receive your results</h3><p>Get a professionally formatted report — tables, charts, interpreted findings — in APA, Harvard, Chicago, or your chosen style. Review the draft and request revisions before final delivery.</p></div>
+    <div class="hwflow">
+      <svg class="hwchart" viewBox="0 0 1200 560" preserveAspectRatio="none">
+        <line x1="60" y1="40" x2="60" y2="520" stroke="#E3E8F0" stroke-width="2"/>
+        <line x1="60" y1="520" x2="1150" y2="520" stroke="#E3E8F0" stroke-width="2"/>
+        <rect x="140" y="380" width="70" height="140" rx="4" fill="#BBD8F5" opacity=".55"/>
+        <rect x="320" y="300" width="70" height="220" rx="4" fill="#BBD8F5" opacity=".55"/>
+        <rect x="500" y="340" width="70" height="180" rx="4" fill="#BBD8F5" opacity=".55"/>
+        <rect x="680" y="250" width="70" height="270" rx="4" fill="#BBD8F5" opacity=".55"/>
+        <rect x="860" y="200" width="70" height="320" rx="4" fill="#BBD8F5" opacity=".55"/>
+        <polyline points="60,460 175,330 360,420 535,260 715,300 895,150 1150,90" fill="none" stroke="#90B8E8" stroke-width="3" opacity=".7"/>
+        <polyline points="60,500 175,470 360,440 535,400 715,360 895,320 1150,270" fill="none" stroke="#F5A623" stroke-width="2.5" stroke-dasharray="6 5" opacity=".6"/>
+      </svg>
+      <svg class="hwarrows" viewBox="0 0 1200 560" preserveAspectRatio="none">
+        <defs><marker id="hwah" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--b2)"/></marker></defs>
+        <path d="M250,140 C 420,90 480,200 590,260" fill="none" stroke="var(--b2)" stroke-width="2.5" marker-end="url(#hwah)"/>
+        <path d="M730,300 C 850,360 880,400 870,430" fill="none" stroke="var(--b2)" stroke-width="2.5" marker-end="url(#hwah)"/>
+      </svg>
+      <div class="hwnode hwn1 fu">
+        <div class="hwcirc"><div class="hwcic">📋</div><div class="hwstep">1</div></div>
+        <h3>Submit your project</h3>
+        <p>Select service type, tool, format, and deadline. Upload your dataset or request collection. Chat with an analyst to align on scope.</p>
+      </div>
+      <div class="hwnode hwn2 fu" style="transition-delay:.1s">
+        <div class="hwcirc"><div class="hwcic">🔬</div><div class="hwstep">2</div></div>
+        <h3>We analyse your data</h3>
+        <p>Your assigned analyst works in SPSS, Stata, R, or Python. Track progress live and communicate directly through your dashboard.</p>
+      </div>
+      <div class="hwnode hwn3 fu" style="transition-delay:.2s">
+        <div class="hwcirc"><div class="hwcic">📊</div><div class="hwstep">3</div></div>
+        <h3>Receive your results</h3>
+        <p>Get a professionally formatted report in APA, Harvard, or Chicago style. Review the draft and request revisions before delivery.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -185,23 +209,6 @@
   </div>
 </section>
 
-<!-- SQL TRACKER -->
-<section class="sqbg" id="tracker">
-  <div class="si">
-    <span class="ey">Project Tracker</span>
-    <h2 class="st">Live Order & Progress Table</h2>
-    <p class="ss">Real-time SQL-style table tracking all orders, statuses, deadlines, payments, and assigned analysts. Export at any time.</p>
-    <div class="sqwrap"><table id="sqlTable">
-      <thead><tr><th>Order ID</th><th>Client</th><th>Email</th><th>Phone</th><th>Organisation</th><th>Project</th><th>Service</th><th>Tool</th><th>Format</th><th>Analyst</th><th>Deadline</th><th>Total (KES)</th><th>Deposit</th><th>Balance</th><th>Status</th></tr></thead>
-      <tbody id="sqlBody"></tbody>
-    </table></div>
-    <div class="sqacts">
-      <button class="sqbtn sqadd" onclick="addRow()">+ Add Order</button>
-      <button class="sqbtn sqexp" onclick="exportCSV()">⬇ Export CSV</button>
-    </div>
-  </div>
-</section>
-
 <!-- TESTIMONIALS -->
 <section class="testibg">
   <div class="si">
@@ -277,6 +284,7 @@
     <button class="snav" onclick="cTab('notifs',this)"><span class="sni">🔔</span>Notifications<span class="ndot"></span></button>
     <button class="snav" onclick="cTab('profile',this)"><span class="sni">👤</span>Profile & Settings</button>
     <div class="ssep"></div>
+    <button class="snav" onclick="showPage('analyst')"><span class="sni">🔬</span>Analyst Portal</button>
     <button class="snav" onclick="openModal()"><span class="sni">➕</span>New Order</button>
     <button class="snav" onclick="showPage('home')"><span class="sni">🏠</span>Back to Website</button>
   </div>
@@ -617,6 +625,7 @@
     <span class="slbl2">Administration</span>
     <button class="snav active" onclick="adTab('overview',this)"><span class="sni">📊</span>Overview</button>
     <button class="snav" onclick="adTab('orders',this)"><span class="sni">📋</span>All Orders<span class="ndot"></span></button>
+    <button class="snav" onclick="adTab('tracker',this)"><span class="sni">📡</span>Project Tracker</button>
     <button class="snav" onclick="adTab('clients',this)"><span class="sni">👥</span>Clients</button>
     <button class="snav" onclick="adTab('analysts',this)"><span class="sni">🔬</span>Analysts</button>
     <button class="snav" onclick="adTab('finance',this)"><span class="sni">💰</span>Finance</button>
@@ -763,6 +772,22 @@
           <tbody id="adminOrderBody"></tbody></table></div>
         </div>
       </div>
+      <!-- PROJECT TRACKER (moved from public site) -->
+      <div id="adtab-tracker" style="display:none">
+        <div class="dtw">
+          <div class="dth"><h3>📡 Live Order & Progress Tracker</h3>
+            <div class="dtha">
+              <button class="db1 dba" onclick="addRow()">+ Add Order</button>
+              <button class="db1 dbb" onclick="exportCSV()">⬇ Export CSV</button>
+            </div>
+          </div>
+          <p style="padding:.9rem 1.4rem 0;font-size:.82rem;color:var(--sl)">Real-time SQL-style table tracking all orders, statuses, deadlines, payments, and assigned analysts.</p>
+          <div class="sqwrap"><table id="sqlTable">
+            <thead><tr><th>Order ID</th><th>Client</th><th>Email</th><th>Phone</th><th>Organisation</th><th>Project</th><th>Service</th><th>Tool</th><th>Format</th><th>Analyst</th><th>Deadline</th><th>Total (KES)</th><th>Deposit</th><th>Balance</th><th>Status</th></tr></thead>
+            <tbody id="sqlBody"></tbody>
+          </table></div>
+        </div>
+      </div>
       <!-- CLIENTS -->
       <div id="adtab-clients" style="display:none">
         <div class="dtw">
@@ -873,22 +898,22 @@
     <div class="mbdy">
       <div class="sdts"><div class="sdt on" id="sd1"></div><div class="sdt" id="sd2"></div><div class="sdt" id="sd3"></div></div>
       <div id="ms1">
-        <div class="frow"><div class="fg"><label>Full Name</label><input type="text" placeholder="Your full name"/></div><div class="fg"><label>Email Address</label><input type="email" placeholder="your@email.com"/></div></div>
-        <div class="frow"><div class="fg"><label>Phone Number</label><input type="tel" placeholder="+254 748 216 918"/></div><div class="fg"><label>Organisation (optional)</label><input type="text" placeholder="University, Company, NGO..."/></div></div>
-        <div class="fg"><label>Country</label><select><option>Kenya</option><option>Uganda</option><option>Tanzania</option><option>Nigeria</option><option>South Africa</option><option>United Kingdom</option><option>United States</option><option>Other</option></select></div>
+        <div class="frow"><div class="fg"><label>Full Name</label><input type="text" id="ord_name" placeholder="Your full name"/></div><div class="fg"><label>Email Address</label><input type="email" id="ord_email" placeholder="your@email.com"/></div></div>
+        <div class="frow"><div class="fg"><label>Phone Number</label><input type="tel" id="ord_phone" placeholder="+254 748 216 918"/></div><div class="fg"><label>Organisation (optional)</label><input type="text" id="ord_org" placeholder="University, Company, NGO..."/></div></div>
+        <div class="fg"><label>Country</label><select id="ord_country"><option>Kenya</option><option>Uganda</option><option>Tanzania</option><option>Nigeria</option><option>South Africa</option><option>United Kingdom</option><option>United States</option><option>Other</option></select></div>
         <div class="fg"><label>Service Type</label>
-          <select><option value="">Select service...</option><option>Data Analysis Only (I have data)</option><option>Data Collection + Analysis</option><option>Data Cleaning + Analysis</option><option>Statistical Consultation Only</option></select></div>
+          <select id="ord_service"><option value="">Select service...</option><option>Data Analysis Only (I have data)</option><option>Data Collection + Analysis</option><option>Data Cleaning + Analysis</option><option>Statistical Consultation Only</option></select></div>
       </div>
       <div id="ms2" style="display:none">
-        <div class="frow"><div class="fg"><label>Data Type</label><select><option>Quantitative</option><option>Qualitative</option><option>Mixed Methods</option><option>Secondary Data</option><option>Not sure yet</option></select></div>
-        <div class="fg"><label>Preferred Tool</label><select><option>SPSS</option><option>Stata</option><option>R</option><option>Python</option><option>Analyst's Discretion</option></select></div></div>
-        <div class="frow"><div class="fg"><label>Report Format</label><select><option>APA 7th Edition</option><option>Harvard</option><option>Chicago</option><option>MLA</option><option>Raw Output Only</option><option>Custom</option></select></div>
-        <div class="fg"><label>Deliverable Type</label><select><option>Full Written Report</option><option>Tables & Charts Only</option><option>Interpreted Results Summary</option><option>Annotated Output File</option></select></div></div>
+        <div class="frow"><div class="fg"><label>Data Type</label><select id="ord_datatype"><option>Quantitative</option><option>Qualitative</option><option>Mixed Methods</option><option>Secondary Data</option><option>Not sure yet</option></select></div>
+        <div class="fg"><label>Preferred Tool</label><select id="ord_tool"><option>SPSS</option><option>Stata</option><option>R</option><option>Python</option><option>Analyst's Discretion</option></select></div></div>
+        <div class="frow"><div class="fg"><label>Report Format</label><select id="ord_format"><option>APA 7th Edition</option><option>Harvard</option><option>Chicago</option><option>MLA</option><option>Raw Output Only</option><option>Custom</option></select></div>
+        <div class="fg"><label>Deliverable Type</label><select id="ord_deliverable"><option>Full Written Report</option><option>Tables & Charts Only</option><option>Interpreted Results Summary</option><option>Annotated Output File</option></select></div></div>
         <div class="fg"><label>Project Description & Research Objectives</label>
-          <textarea placeholder="Describe your research objectives, research questions, what tests or models you need, and what you want to learn from the data..."></textarea></div>
+          <textarea id="ord_desc" placeholder="Describe your research objectives, research questions, what tests or models you need, and what you want to learn from the data..."></textarea></div>
       </div>
       <div id="ms3" style="display:none">
-        <div class="frow"><div class="fg"><label>Draft Deadline</label><input type="date"/></div><div class="fg"><label>Final Delivery Deadline</label><input type="date"/></div></div>
+        <div class="frow"><div class="fg"><label>Draft Deadline</label><input type="date" id="ord_draftdue"/></div><div class="fg"><label>Final Delivery Deadline</label><input type="date" id="ord_finaldue"/></div></div>
         <div class="fg"><label>Upload Files (dataset, questionnaire, codebook, instructions)</label>
           <div class="upl" onclick="document.getElementById('mfile').click()">
             <p>📎 <strong>Click to upload</strong> or drag & drop here</p>
@@ -898,10 +923,11 @@
           <p id="mfn" style="font-size:.75rem;color:var(--b2);margin-top:.38rem"></p>
         </div>
         <div class="fg"><label>Special Instructions (optional)</label>
-          <textarea placeholder="Any extra notes — specific software versions, variable naming, specific tables needed, etc." style="min-height:65px"></textarea></div>
+          <textarea id="ord_notes" placeholder="Any extra notes — specific software versions, variable naming, specific tables needed, etc." style="min-height:65px"></textarea></div>
       </div>
     </div>
     <div class="mft">
+      <span id="ordStatus" style="font-size:.78rem;color:var(--sl);margin-right:auto"></span>
       <button class="bsec" id="mprev" onclick="mPrev()" style="display:none">← Back</button>
       <button class="bp" id="mnext" onclick="mNext()">Continue →</button>
     </div>

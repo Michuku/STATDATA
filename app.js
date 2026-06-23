@@ -213,7 +213,7 @@ function adTab(n,btn){
   document.querySelectorAll('#page-admin .snav').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active')
   document.querySelectorAll('#page-admin [id^=adtab-]').forEach(d=>d.style.display='none')
   const el=document.getElementById('adtab-'+n);if(el)el.style.display='block'
-  const t={overview:'Admin Overview',orders:'All Orders',clients:'Client Management',analysts:'Analyst Accounts',finance:'Financial Management',reports:'Reports & Analytics',notifs:'Notification Centre',content:'Website Content'}
+  const t={overview:'Admin Overview',orders:'All Orders',tracker:'Project Tracker',clients:'Client Management',analysts:'Analyst Accounts',finance:'Financial Management',reports:'Reports & Analytics',notifs:'Notification Centre',content:'Website Content'}
   document.getElementById('adTabTitle').textContent=t[n]||n
   renderSQL()
 }
@@ -232,11 +232,61 @@ function mNext(){
     document.getElementById('mprev').style.display='inline-flex'
     if(mStep===3)document.getElementById('mnext').textContent='Submit Project ✓'
   } else {
-    alert('Thank you! Your project has been submitted.\n\nAn invoice will be emailed to you within 4 hours.\n\nFor urgent enquiries: +254 748 216 918')
-    closeModal();mStep=1
-    ;[1,2,3].forEach(i=>{document.getElementById('ms'+i).style.display=i===1?'block':'none';document.getElementById('sd'+i).className='sdt'+(i===1?' on':'')})
-    document.getElementById('mprev').style.display='none';document.getElementById('mnext').textContent='Continue →'
+    submitOrder()
   }
+}
+// Formspree endpoint — replace YOUR_FORM_ID with the ID from your Formspree dashboard (https://formspree.io)
+const FORMSPREE_ENDPOINT='https://formspree.io/f/xeeboeqy'
+function submitOrder(){
+  const v=id=>{const el=document.getElementById(id);return el?el.value:''}
+  const data={
+    name:v('ord_name'),email:v('ord_email'),phone:v('ord_phone'),org:v('ord_org')||'—',
+    country:v('ord_country'),service:v('ord_service'),datatype:v('ord_datatype'),tool:v('ord_tool'),
+    format:v('ord_format'),deliverable:v('ord_deliverable'),description:v('ord_desc'),
+    draft_deadline:v('ord_draftdue'),final_deadline:v('ord_finaldue'),notes:v('ord_notes')||'—'
+  }
+  if(!data.name||!data.email||!data.service){
+    document.getElementById('ordStatus').textContent='⚠ Please fill in your name, email, and service type.'
+    document.getElementById('ordStatus').style.color='#D13438'
+    return
+  }
+  const statusEl=document.getElementById('ordStatus')
+  const btn=document.getElementById('mnext')
+  statusEl.style.color='var(--sl)';statusEl.textContent='Submitting your project...'
+  btn.disabled=true
+
+  fetch(FORMSPREE_ENDPOINT,{
+    method:'POST',
+    headers:{'Content-Type':'application/json',Accept:'application/json'},
+    body:JSON.stringify({
+      _subject:`New DataBridge Order — ${data.name}`,
+      ...data
+    })
+  }).then(res=>{
+    if(!res.ok) throw new Error('Submission failed')
+    return res.json()
+  }).then(()=>{
+    // add to live on-site tracker (Admin → Project Tracker) so it shows up immediately
+    const n=sqlData.length+1
+    sqlData.push({
+      id:`DB-2025-0${(n+4).toString().padStart(2,'0')}`,client:data.name,email:data.email,phone:data.phone,
+      org:data.org,project:data.description?data.description.slice(0,40)+'…':data.service,service:data.datatype||data.service,
+      tool:data.tool||'TBD',format:data.format||'TBD',analyst:'Unassigned',deadline:data.final_deadline||'TBD',
+      total:'0',deposit:'0',balance:'0',status:'Pending'
+    })
+    renderSQL()
+    statusEl.style.color='#107C10'
+    statusEl.textContent='✓ Submitted! Check your email for confirmation.'
+    setTimeout(()=>{
+      closeModal();mStep=1;btn.disabled=false;statusEl.textContent=''
+      ;[1,2,3].forEach(i=>{document.getElementById('ms'+i).style.display=i===1?'block':'none';document.getElementById('sd'+i).className='sdt'+(i===1?' on':'')})
+      document.getElementById('mprev').style.display='none';btn.textContent='Continue →'
+    },1800)
+  }).catch(()=>{
+    btn.disabled=false
+    statusEl.style.color='#D13438'
+    statusEl.textContent='⚠ Could not submit online. Please email hello@databridge.co.ke or call +254 748 216 918 directly.'
+  })
 }
 function mPrev(){
   if(mStep>1){
