@@ -18,8 +18,14 @@
       <li><a href="#" onclick="showPage('home');scrollTo2('services');return false">Services</a></li>
       <li><a href="#" onclick="showPage('home');scrollTo2('portfolio');return false">Portfolio</a></li>
       <li><a href="#" onclick="showPage('home');scrollTo2('how');return false">How It Works</a></li>
-      <li><a href="#" onclick="goClient();return false">Client</a></li>
-      <li><a href="#" onclick="showPage('admin');return false">Admin</a></li>
+      <!-- shown when logged in as client -->
+      <li id="nav-client-dash" style="display:none"><a href="#" onclick="showPage('client');return false">📊 My Dashboard</a></li>
+      <!-- shown when logged in as admin -->
+      <li id="nav-admin-dash" style="display:none"><a href="#" onclick="showPage('admin');return false">🔐 Admin Panel</a></li>
+      <!-- login button — hidden when already logged in -->
+      <li id="nav-login-li"><a href="#" onclick="showPage('login');return false">🔑 Login</a></li>
+      <!-- logout — shown when any session active -->
+      <li id="nav-logout-li" style="display:none"><a href="#" onclick="globalLogout();return false">🚪 Logout</a></li>
       <li><a href="#" class="ncta" onclick="openModal();return false">Start Project</a></li>
     </ul>
     <button class="ntog" onclick="toggleMM()" aria-label="Menu"><span></span><span></span><span></span></button>
@@ -29,8 +35,10 @@
   <a href="#" onclick="showPage('home');toggleMM();return false">🏠 Home</a>
   <a href="#" onclick="showPage('home');scrollTo2('services');toggleMM();return false">Services</a>
   <a href="#" onclick="showPage('home');scrollTo2('portfolio');toggleMM();return false">Portfolio</a>
-  <a href="#" onclick="goClient();toggleMM();return false">Client Dashboard</a>
-  <a href="#" onclick="showPage('admin');toggleMM();return false">Admin Dashboard</a>
+  <a id="mm-client-dash" style="display:none" href="#" onclick="showPage('client');toggleMM();return false">📊 My Dashboard</a>
+  <a id="mm-admin-dash" style="display:none" href="#" onclick="showPage('admin');toggleMM();return false">🔐 Admin Panel</a>
+  <a id="mm-login" href="#" onclick="showPage('login');toggleMM();return false">🔑 Login</a>
+  <a id="mm-logout" style="display:none" href="#" onclick="globalLogout();toggleMM();return false">🚪 Logout</a>
   <a href="#" class="ncta" onclick="openModal();toggleMM();return false">Start Project</a>
 </div>
 
@@ -271,35 +279,83 @@
 </footer>
 </div><!-- end home -->
 <!-- ══════════ CLIENT AUTH (LOGIN / SIGNUP) ══════════ -->
-<div id="page-clientauth" class="page">
-  <div class="authwrap">
-    <div class="authbox">
-      <div class="authlogo">Data<span>Bridge</span></div>
-      <div class="authtabs">
-        <button class="authtab on" id="atab-login" onclick="authSwitch('login')">Log In</button>
-        <button class="authtab" id="atab-signup" onclick="authSwitch('signup')">Create Account</button>
+<!-- ══════════ UNIFIED LOGIN PAGE ══════════ -->
+<div id="page-login" class="page">
+  <div class="loginwrap">
+    <div class="loginbg-glow"></div>
+    <div class="loginbg-glow2"></div>
+
+    <!-- Back link -->
+    <a href="#" class="login-back" onclick="showPage('home');return false">← Back to website</a>
+
+    <!-- Brand -->
+    <div class="login-brand">Data<span>Bridge</span></div>
+    <p class="login-tagline">Choose your portal to continue</p>
+
+    <!-- Two portal cards -->
+    <div class="login-cards">
+
+      <!-- CLIENT CARD -->
+      <div class="lcard" id="lcard-client">
+        <div class="lcard-icon">👤</div>
+        <h2>Client Portal</h2>
+        <p>Submit projects, track orders, chat with your analyst, download deliverables and invoices.</p>
+        <button class="lcard-btn" onclick="expandLogin('client')">Enter Client Portal →</button>
+
+        <!-- Expandable login/signup -->
+        <div class="lcard-form" id="lform-client">
+          <div class="authtabs" style="margin-top:1.2rem">
+            <button class="authtab on" id="atab-login" onclick="authSwitch('login')">Log In</button>
+            <button class="authtab" id="atab-signup" onclick="authSwitch('signup')">Create Account</button>
+          </div>
+          <!-- LOGIN -->
+          <div id="authpane-login">
+            <p class="authsub">Welcome back — log in to track your orders.</p>
+            <div class="fg"><label>Email Address</label><input type="email" id="li_email" placeholder="your@email.com" autocomplete="email"/></div>
+            <div class="fg"><label>Password</label><input type="password" id="li_pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')clientLogin()"/></div>
+            <p id="authError" style="color:#D13438;font-size:.8rem;display:none;margin-bottom:.6rem"></p>
+            <button class="bp" style="width:100%;margin-top:.3rem" onclick="clientLogin()">Log In</button>
+            <p class="authswitch">No account? <a href="#" onclick="authSwitch('signup');return false">Create one free</a></p>
+          </div>
+          <!-- SIGNUP -->
+          <div id="authpane-signup" style="display:none">
+            <p class="authsub">Create your DataBridge account to submit and track orders.</p>
+            <div class="frow"><div class="fg"><label>Full Name</label><input type="text" id="su_name" placeholder="Your full name"/></div><div class="fg"><label>Phone</label><input type="tel" id="su_phone" placeholder="+254 7XX XXX XXX"/></div></div>
+            <div class="fg"><label>Email Address</label><input type="email" id="su_email" placeholder="your@email.com" autocomplete="email"/></div>
+            <div class="fg"><label>Password</label><input type="password" id="su_pass" placeholder="Create a password" onkeydown="if(event.key==='Enter')clientSignup()"/></div>
+            <p id="authError2" style="color:#D13438;font-size:.8rem;display:none;margin-bottom:.6rem"></p>
+            <button class="bp" style="width:100%;margin-top:.3rem" onclick="clientSignup()">Create Account &amp; Enter</button>
+            <p class="authswitch">Already have an account? <a href="#" onclick="authSwitch('login');return false">Log in</a></p>
+          </div>
+        </div>
       </div>
-      <div id="authpane-login">
-        <p class="authsub">Welcome back — log in to track your orders.</p>
-        <div class="fg"><label>Email Address</label><input type="email" id="li_email" placeholder="your@email.com"/></div>
-        <div class="fg"><label>Password</label><input type="password" id="li_pass" placeholder="••••••••"/></div>
-        <p id="authError" style="color:#D13438;font-size:.8rem;display:none;margin-bottom:.6rem"></p>
-        <button class="bp" style="width:100%" onclick="clientLogin()">Log In</button>
-        <p class="authswitch">No account? <a href="#" onclick="authSwitch('signup');return false">Create one</a></p>
+
+      <!-- ANALYST / ADMIN CARD -->
+      <div class="lcard lcard-admin" id="lcard-admin">
+        <div class="lcard-icon" style="background:rgba(13,71,161,.15)">🔐</div>
+        <h2>Analyst &amp; Admin Portal</h2>
+        <p>Analyst portal and admin dashboard — assign orders, manage clients, view reports and tracker.</p>
+        <button class="lcard-btn lcard-btn-admin" onclick="expandLogin('admin')">Enter Admin Portal →</button>
+
+        <!-- Expandable admin login -->
+        <div class="lcard-form" id="lform-admin">
+          <div style="margin-top:1.2rem">
+            <p class="authsub" style="text-align:center">🔒 Authorised personnel only</p>
+            <div class="fg"><label>Admin Email</label><input type="email" id="adm_email" placeholder="admin@databridge.co.ke" autocomplete="username"/></div>
+            <div class="fg"><label>Password</label><input type="password" id="adm_pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')adminLogin()"/></div>
+            <p id="adminAuthError" style="color:#D13438;font-size:.8rem;display:none;margin-bottom:.6rem"></p>
+            <button class="bp" style="width:100%;margin-top:.3rem;background:#0D47A1" onclick="adminLogin()">Access Admin Panel</button>
+            <p style="text-align:center;font-size:.74rem;color:var(--sl);margin-top:.7rem">Analyst? Use your assigned credentials.<br/>Contact: <a href="mailto:gitauhenry467@gmail.com" style="color:var(--b2)">gitauhenry467@gmail.com</a></p>
+          </div>
+        </div>
       </div>
-      <div id="authpane-signup" style="display:none">
-        <p class="authsub">Create your DataBridge account to submit and track orders.</p>
-        <div class="frow"><div class="fg"><label>Full Name</label><input type="text" id="su_name" placeholder="Your full name"/></div><div class="fg"><label>Phone</label><input type="tel" id="su_phone" placeholder="+254 7XX XXX XXX"/></div></div>
-        <div class="fg"><label>Email Address</label><input type="email" id="su_email" placeholder="your@email.com"/></div>
-        <div class="fg"><label>Password</label><input type="password" id="su_pass" placeholder="Create a password"/></div>
-        <p id="authError2" style="color:#D13438;font-size:.8rem;display:none;margin-bottom:.6rem"></p>
-        <button class="bp" style="width:100%" onclick="clientSignup()">Create Account</button>
-        <p class="authswitch">Already have an account? <a href="#" onclick="authSwitch('login');return false">Log in</a></p>
-      </div>
-      <p class="authback"><a href="#" onclick="showPage('home');return false">← Back to website</a></p>
-    </div>
+
+    </div><!-- end login-cards -->
   </div>
-</div>
+</div><!-- end page-login -->
+
+<!-- keep old clientauth page hidden/empty for backward compat -->
+<div id="page-clientauth" class="page" style="display:none"></div>
 <!-- ══════════ CLIENT DASHBOARD ══════════ -->
 <div id="page-client" class="page">
 <div class="dlayout">

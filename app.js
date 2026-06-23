@@ -9,66 +9,162 @@ function scrollTo2(id){
   setTimeout(()=>{const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth'})},150)
 }
 
-// ===== CLIENT ACCOUNTS (browser-local — see note in chat for real multi-device accounts) =====
+// ══════════════════════════════════════════════════════
+// AUTH SYSTEM
+// ══════════════════════════════════════════════════════
+
+// ── Storage helpers ──
 function dbUsers(){ try{return JSON.parse(localStorage.getItem('db_users')||'{}')}catch(e){return {}} }
 function saveUsers(u){ localStorage.setItem('db_users',JSON.stringify(u)) }
 function currentClient(){ try{return JSON.parse(localStorage.getItem('db_currentClient')||'null')}catch(e){return null} }
 function setCurrentClient(u){ localStorage.setItem('db_currentClient',JSON.stringify(u)) }
-function clientLogoutSilently(){ localStorage.removeItem('db_currentClient') }
+function isAdminLoggedIn(){ return localStorage.getItem('db_adminSession')==='1' }
+function setAdminSession(){ localStorage.setItem('db_adminSession','1') }
+function clearAdminSession(){ localStorage.removeItem('db_adminSession') }
 
-function goClient(){
-  const u=currentClient()
-  if(u){ showPage('client'); applyClientSession(u) }
-  else { showPage('clientauth') }
+// Admin credentials (Henry G Michuku)
+const ADMIN_CREDENTIALS = [
+  { email: 'gitauhenry467@gmail.com', pass: 'DataBridge2025', name: 'Henry G Michuku' },
+  { email: 'admin@databridge.co.ke',  pass: 'DataBridge2025', name: 'Henry G Michuku' }
+]
+
+// ── Nav state — show/hide nav items based on session ──
+function updateNavState(){
+  const client  = currentClient()
+  const isAdmin = isAdminLoggedIn()
+  const loggedIn = !!(client || isAdmin)
+
+  // Desktop nav
+  const loginLi  = document.getElementById('nav-login-li')
+  const logoutLi = document.getElementById('nav-logout-li')
+  const clientDash= document.getElementById('nav-client-dash')
+  const adminDash = document.getElementById('nav-admin-dash')
+  if(loginLi)   loginLi.style.display   = loggedIn ? 'none' : ''
+  if(logoutLi)  logoutLi.style.display  = loggedIn ? '' : 'none'
+  if(clientDash) clientDash.style.display= client   ? '' : 'none'
+  if(adminDash)  adminDash.style.display = isAdmin  ? '' : 'none'
+
+  // Mobile menu
+  const mmLogin  = document.getElementById('mm-login')
+  const mmLogout = document.getElementById('mm-logout')
+  const mmClient = document.getElementById('mm-client-dash')
+  const mmAdmin  = document.getElementById('mm-admin-dash')
+  if(mmLogin)  mmLogin.style.display  = loggedIn ? 'none' : ''
+  if(mmLogout) mmLogout.style.display = loggedIn ? '' : 'none'
+  if(mmClient) mmClient.style.display = client   ? '' : 'none'
+  if(mmAdmin)  mmAdmin.style.display  = isAdmin  ? '' : 'none'
 }
+
+// ── Login page — expand the right form card ──
+function expandLogin(which){
+  const clientForm = document.getElementById('lform-client')
+  const adminForm  = document.getElementById('lform-admin')
+  if(which==='client'){
+    clientForm.classList.toggle('open')
+    if(adminForm) adminForm.classList.remove('open')
+  } else {
+    adminForm.classList.toggle('open')
+    if(clientForm) clientForm.classList.remove('open')
+  }
+}
+
+// ── Client auth ──
 function authSwitch(which){
   document.getElementById('atab-login').classList.toggle('on',which==='login')
   document.getElementById('atab-signup').classList.toggle('on',which==='signup')
   document.getElementById('authpane-login').style.display=which==='login'?'block':'none'
   document.getElementById('authpane-signup').style.display=which==='signup'?'block':'none'
 }
+
 function clientSignup(){
-  const name=document.getElementById('su_name').value.trim()
-  const phone=document.getElementById('su_phone').value.trim()
-  const email=document.getElementById('su_email').value.trim().toLowerCase()
-  const pass=document.getElementById('su_pass').value
-  const err=document.getElementById('authError2')
+  const name  = document.getElementById('su_name').value.trim()
+  const phone = document.getElementById('su_phone').value.trim()
+  const email = document.getElementById('su_email').value.trim().toLowerCase()
+  const pass  = document.getElementById('su_pass').value
+  const err   = document.getElementById('authError2')
   if(!name||!email||!pass){ err.textContent='Please fill in your name, email, and password.'; err.style.display='block'; return }
-  const users=dbUsers()
+  const users = dbUsers()
   if(users[email]){ err.textContent='An account with this email already exists. Try logging in.'; err.style.display='block'; return }
   users[email]={name,phone,email,pass}
   saveUsers(users)
   err.style.display='none'
   setCurrentClient({name,phone,email})
-  showPage('client'); applyClientSession({name,phone,email})
+  updateNavState()
+  showPage('client')
+  applyClientSession({name,phone,email})
 }
+
 function clientLogin(){
-  const email=document.getElementById('li_email').value.trim().toLowerCase()
-  const pass=document.getElementById('li_pass').value
-  const err=document.getElementById('authError')
-  const users=dbUsers()
-  const u=users[email]
+  const email = document.getElementById('li_email').value.trim().toLowerCase()
+  const pass  = document.getElementById('li_pass').value
+  const err   = document.getElementById('authError')
+  const users = dbUsers()
+  const u     = users[email]
   if(!u||u.pass!==pass){ err.textContent='Incorrect email or password.'; err.style.display='block'; return }
   err.style.display='none'
   setCurrentClient({name:u.name,phone:u.phone,email:u.email})
-  showPage('client'); applyClientSession(u)
+  updateNavState()
+  showPage('client')
+  applyClientSession(u)
 }
+
 function clientLogout(){
-  clientLogoutSilently()
+  localStorage.removeItem('db_currentClient')
+  updateNavState()
   showPage('home')
 }
+
 function applyClientSession(u){
   const initials=(u.name||'? ?').split(' ').filter(Boolean).slice(0,2).map(s=>s[0].toUpperCase()).join('')
   const av=document.getElementById('cUserAvatar'), nm=document.getElementById('cUserName')
   if(av)av.textContent=initials
   if(nm)nm.textContent=u.name
-  // pre-fill the order form with this client's details
   const fn=document.getElementById('ord_name'), fe=document.getElementById('ord_email'), fp=document.getElementById('ord_phone')
   if(fn)fn.value=u.name||''
   if(fe)fe.value=u.email||''
   if(fp)fp.value=u.phone||''
   renderMyOrders(u.email)
 }
+
+// ── Admin / Analyst login ──
+function adminLogin(){
+  const email = (document.getElementById('adm_email').value||'').trim().toLowerCase()
+  const pass  = document.getElementById('adm_pass').value
+  const err   = document.getElementById('adminAuthError')
+  const match = ADMIN_CREDENTIALS.find(c=>c.email===email && c.pass===pass)
+  if(!match){
+    err.textContent='Incorrect email or password. Contact gitauhenry467@gmail.com for access.'
+    err.style.display='block'
+    return
+  }
+  err.style.display='none'
+  setAdminSession()
+  updateNavState()
+  showPage('admin')
+  // Apply Henry's details to admin header
+  setTimeout(()=>{
+    const av = document.querySelector('#page-admin .dav')
+    const nm = document.querySelector('#page-admin .duname')
+    if(av){ av.textContent='HM'; av.style.background='#0D47A1' }
+    if(nm) nm.textContent = match.name + ' — Admin'
+  }, 50)
+}
+
+// ── Global logout (works for both client and admin) ──
+function globalLogout(){
+  localStorage.removeItem('db_currentClient')
+  clearAdminSession()
+  updateNavState()
+  showPage('home')
+}
+
+// ── goClient: redirect to login if not authenticated ──
+function goClient(){
+  const u=currentClient()
+  if(u){ showPage('client'); applyClientSession(u) }
+  else { showPage('login') }
+}
+
 function renderMyOrders(email){
   const wrap=document.getElementById('myOrdersBody')
   if(!wrap)return
@@ -79,6 +175,9 @@ function renderMyOrders(email){
   }
   wrap.innerHTML=mine.map(r=>`<tr><td><strong>${r.id}</strong></td><td>${r.project}</td><td>${r.tool}</td><td>${r.analyst}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td></tr>`).join('')
 }
+
+// Run nav state on load
+document.addEventListener('DOMContentLoaded', updateNavState)
 
 // NAV
 window.addEventListener('scroll',()=>document.getElementById('mainNav').classList.toggle('scrolled',window.scrollY>30))
@@ -373,14 +472,6 @@ const ADMIN_USER = {
   initials: 'HM',
   color:    '#0D47A1'
 }
-
-// Apply admin identity to the admin panel header on load
-document.addEventListener('DOMContentLoaded', () => {
-  const av = document.querySelector('#page-admin .dav')
-  const nm = document.querySelector('#page-admin .duname')
-  if (av) { av.textContent = ADMIN_USER.initials; av.style.background = ADMIN_USER.color }
-  if (nm) nm.textContent = ADMIN_USER.name + ' — Admin'
-})
 
 // ── CLIENT CONFIRMATION EMAIL ─────────────────────────────────────────────────
 // Formspree sends an auto-reply to _replyto when "Auto-response" is ON in the dashboard.
