@@ -9,175 +9,105 @@ function scrollTo2(id){
   setTimeout(()=>{const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth'})},150)
 }
 
-// ══════════════════════════════════════════════════════
-// AUTH SYSTEM
-// ══════════════════════════════════════════════════════
-
-// ── Storage helpers ──
+// ===== CLIENT ACCOUNTS (browser-local — see note in chat for real multi-device accounts) =====
 function dbUsers(){ try{return JSON.parse(localStorage.getItem('db_users')||'{}')}catch(e){return {}} }
 function saveUsers(u){ localStorage.setItem('db_users',JSON.stringify(u)) }
 function currentClient(){ try{return JSON.parse(localStorage.getItem('db_currentClient')||'null')}catch(e){return null} }
 function setCurrentClient(u){ localStorage.setItem('db_currentClient',JSON.stringify(u)) }
-function isAdminLoggedIn(){ return localStorage.getItem('db_adminSession')==='1' }
-function setAdminSession(){ localStorage.setItem('db_adminSession','1') }
-function clearAdminSession(){ localStorage.removeItem('db_adminSession') }
+function clientLogoutSilently(){ localStorage.removeItem('db_currentClient') }
 
-// Admin credentials (Henry G Michuku)
-const ADMIN_CREDENTIALS = [
-  { email: 'gitauhenry467@gmail.com', pass: 'DataBridge2025', name: 'Henry G Michuku' },
-  { email: 'admin@databridge.co.ke',  pass: 'DataBridge2025', name: 'Henry G Michuku' }
-]
-
-// ── Nav state — show/hide nav items based on session ──
-function updateNavState(){
-  const client  = currentClient()
-  const isAdmin = isAdminLoggedIn()
-  const loggedIn = !!(client || isAdmin)
-
-  // Desktop nav
-  const loginLi  = document.getElementById('nav-login-li')
-  const logoutLi = document.getElementById('nav-logout-li')
-  const clientDash= document.getElementById('nav-client-dash')
-  const adminDash = document.getElementById('nav-admin-dash')
-  if(loginLi)   loginLi.style.display   = loggedIn ? 'none' : ''
-  if(logoutLi)  logoutLi.style.display  = loggedIn ? '' : 'none'
-  if(clientDash) clientDash.style.display= client   ? '' : 'none'
-  if(adminDash)  adminDash.style.display = isAdmin  ? '' : 'none'
-
-  // Mobile menu
-  const mmLogin  = document.getElementById('mm-login')
-  const mmLogout = document.getElementById('mm-logout')
-  const mmClient = document.getElementById('mm-client-dash')
-  const mmAdmin  = document.getElementById('mm-admin-dash')
-  if(mmLogin)  mmLogin.style.display  = loggedIn ? 'none' : ''
-  if(mmLogout) mmLogout.style.display = loggedIn ? '' : 'none'
-  if(mmClient) mmClient.style.display = client   ? '' : 'none'
-  if(mmAdmin)  mmAdmin.style.display  = isAdmin  ? '' : 'none'
+function goClient(){
+  const u=currentClient()
+  if(u){ showPage('client'); applyClientSession(u) }
+  else { showPage('clientauth') }
 }
-
-// ── Login page — expand the right form card ──
-function expandLogin(which){
-  const clientForm = document.getElementById('lform-client')
-  const adminForm  = document.getElementById('lform-admin')
-  if(which==='client'){
-    clientForm.classList.toggle('open')
-    if(adminForm) adminForm.classList.remove('open')
-  } else {
-    adminForm.classList.toggle('open')
-    if(clientForm) clientForm.classList.remove('open')
-  }
-}
-
-// ── Client auth ──
 function authSwitch(which){
   document.getElementById('atab-login').classList.toggle('on',which==='login')
   document.getElementById('atab-signup').classList.toggle('on',which==='signup')
   document.getElementById('authpane-login').style.display=which==='login'?'block':'none'
   document.getElementById('authpane-signup').style.display=which==='signup'?'block':'none'
 }
-
 function clientSignup(){
-  const name  = document.getElementById('su_name').value.trim()
-  const phone = document.getElementById('su_phone').value.trim()
-  const email = document.getElementById('su_email').value.trim().toLowerCase()
-  const pass  = document.getElementById('su_pass').value
-  const err   = document.getElementById('authError2')
+  const name=document.getElementById('su_name').value.trim()
+  const phone=document.getElementById('su_phone').value.trim()
+  const email=document.getElementById('su_email').value.trim().toLowerCase()
+  const pass=document.getElementById('su_pass').value
+  const err=document.getElementById('authError2')
   if(!name||!email||!pass){ err.textContent='Please fill in your name, email, and password.'; err.style.display='block'; return }
-  const users = dbUsers()
+  const users=dbUsers()
   if(users[email]){ err.textContent='An account with this email already exists. Try logging in.'; err.style.display='block'; return }
-  users[email]={name,phone,email,pass}
+  users[email]={name,phone,email,pass,created:Date.now()}
   saveUsers(users)
   err.style.display='none'
-  setCurrentClient({name,phone,email})
-  updateNavState()
-  showPage('client')
-  applyClientSession({name,phone,email})
+  setCurrentClient({name,phone,email,created:users[email].created})
+  showPage('client'); applyClientSession(users[email])
 }
-
 function clientLogin(){
-  const email = document.getElementById('li_email').value.trim().toLowerCase()
-  const pass  = document.getElementById('li_pass').value
-  const err   = document.getElementById('authError')
-  const users = dbUsers()
-  const u     = users[email]
+  const email=document.getElementById('li_email').value.trim().toLowerCase()
+  const pass=document.getElementById('li_pass').value
+  const err=document.getElementById('authError')
+  const users=dbUsers()
+  const u=users[email]
   if(!u||u.pass!==pass){ err.textContent='Incorrect email or password.'; err.style.display='block'; return }
   err.style.display='none'
-  setCurrentClient({name:u.name,phone:u.phone,email:u.email})
-  updateNavState()
-  showPage('client')
-  applyClientSession(u)
+  setCurrentClient({name:u.name,phone:u.phone,email:u.email,created:u.created})
+  showPage('client'); applyClientSession(u)
 }
-
 function clientLogout(){
-  localStorage.removeItem('db_currentClient')
-  updateNavState()
+  clientLogoutSilently()
   showPage('home')
 }
-
 function applyClientSession(u){
   const initials=(u.name||'? ?').split(' ').filter(Boolean).slice(0,2).map(s=>s[0].toUpperCase()).join('')
   const av=document.getElementById('cUserAvatar'), nm=document.getElementById('cUserName')
   if(av)av.textContent=initials
   if(nm)nm.textContent=u.name
+  const sl=document.getElementById('pbiSlicerName');if(sl)sl.textContent=u.name
+  const pn=document.getElementById('prof_name'),pe=document.getElementById('prof_email'),pp=document.getElementById('prof_phone'),pc=document.getElementById('prof_created')
+  if(pn)pn.value=u.name||''
+  if(pe)pe.value=u.email||''
+  if(pp)pp.value=u.phone||''
+  if(pc)pc.value=u.created?new Date(u.created).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'
+  // pre-fill the order form with this client's details
   const fn=document.getElementById('ord_name'), fe=document.getElementById('ord_email'), fp=document.getElementById('ord_phone')
   if(fn)fn.value=u.name||''
   if(fe)fe.value=u.email||''
   if(fp)fp.value=u.phone||''
   renderMyOrders(u.email)
+  pbiRenderClientPortal()
 }
-
-// ── Admin / Analyst login ──
-function adminLogin(){
-  const email = (document.getElementById('adm_email').value||'').trim().toLowerCase()
-  const pass  = document.getElementById('adm_pass').value
-  const err   = document.getElementById('adminAuthError')
-  const match = ADMIN_CREDENTIALS.find(c=>c.email===email && c.pass===pass)
-  if(!match){
-    err.textContent='Incorrect email or password. Contact gitauhenry467@gmail.com for access.'
-    err.style.display='block'
-    return
-  }
-  err.style.display='none'
-  setAdminSession()
-  updateNavState()
-  showPage('admin')
-  // Apply Henry's details to admin header
-  setTimeout(()=>{
-    const av = document.querySelector('#page-admin .dav')
-    const nm = document.querySelector('#page-admin .duname')
-    if(av){ av.textContent='HM'; av.style.background='#0D47A1' }
-    if(nm) nm.textContent = match.name + ' — Admin'
-  }, 50)
-}
-
-// ── Global logout (works for both client and admin) ──
-function globalLogout(){
-  localStorage.removeItem('db_currentClient')
-  clearAdminSession()
-  updateNavState()
-  showPage('home')
-}
-
-// ── goClient: redirect to login if not authenticated ──
-function goClient(){
-  const u=currentClient()
-  if(u){ showPage('client'); applyClientSession(u) }
-  else { showPage('login') }
-}
-
 function renderMyOrders(email){
   const wrap=document.getElementById('myOrdersBody')
   if(!wrap)return
   const mine=sqlData.filter(r=>r.email && r.email.toLowerCase()===String(email).toLowerCase())
   if(mine.length===0){
-    wrap.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--sl);padding:1.4rem">No orders yet — click "+ New Order" to submit your first project.</td></tr>`
+    wrap.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--sl);padding:1.4rem">No orders yet — click "+ New Order" to submit your first project.</td></tr>`
     return
   }
-  wrap.innerHTML=mine.map(r=>`<tr><td><strong>${r.id}</strong></td><td>${r.project}</td><td>${r.tool}</td><td>${r.analyst}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td></tr>`).join('')
+  wrap.innerHTML=mine.map(r=>{
+    const files=getFiles(r.id)
+    const deliverable=files.analyst.length?downloadLinksHTML(files.analyst):'<span style="color:var(--sl);font-size:.74rem">Not ready yet</span>'
+    return `<tr><td><strong>${r.id}</strong></td><td>${r.project}</td><td>${r.tool}</td><td>${r.analyst}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td><td>${deliverable}</td></tr>`
+  }).join('')
 }
 
-// Run nav state on load
-document.addEventListener('DOMContentLoaded', updateNavState)
+// ===== FILE STORAGE (browser-local — see chat note on real shared storage) =====
+function getFiles(orderId){
+  try{return JSON.parse(localStorage.getItem('db_files_'+orderId)||'{"client":[],"analyst":[]}')}
+  catch(e){return {client:[],analyst:[]}}
+}
+function setFiles(orderId,obj){ localStorage.setItem('db_files_'+orderId,JSON.stringify(obj)) }
+function filesToDataURLs(fileList){
+  return Promise.all([...fileList].map(f=>new Promise(res=>{
+    const r=new FileReader()
+    r.onload=()=>res({name:f.name,type:f.type||'application/octet-stream',size:f.size,dataUrl:r.result})
+    r.readAsDataURL(f)
+  })))
+}
+function downloadLinksHTML(files){
+  if(!files||!files.length)return '<span style="color:var(--sl);font-size:.74rem">None</span>'
+  return files.map(f=>`<a href="${f.dataUrl}" download="${f.name}" style="display:block;font-size:.78rem;color:var(--b2);margin-bottom:.2rem">📎 ${f.name}</a>`).join('')
+}
 
 // NAV
 window.addEventListener('scroll',()=>document.getElementById('mainNav').classList.toggle('scrolled',window.scrollY>30))
@@ -333,67 +263,82 @@ let sqlData=[
   {id:'DB-2025-005',client:'Faith Achieng',email:'faith@uni.ac.ke',phone:'+254 755 444 555',org:'Moi University',project:'Econometrics Thesis',service:'Quantitative',tool:'Stata',format:'APA 7th',analyst:'Joseph Machuki',deadline:'30 Jul 2025',total:'22,000',deposit:'11,000',balance:'11,000',status:'Confirmed'},
 ]
 const scls={'In Progress':'b-pr','Confirmed':'b-pn','Draft Review':'b-rv','Completed':'b-dn','Pending':'b-pn','Overdue':'b-ov'}
-// Henry G Michuku is the principal analyst / admin — listed first
-const ANALYSTS=['Henry G Michuku','Dr. James Kariuki','Mercy Otieno','Unassigned']
-
+const ANALYSTS=['Henry G. Michuku','Simon Macharia','Joseph Machuki','Unassigned']
 function analystSelect(id,current){
-  return `<select onchange="assignAnalyst('${id}',this.value)" style="font-size:.78rem;padding:.25rem .4rem;border:1px solid var(--br);border-radius:6px;background:#fff;min-width:140px">`+
+  return `<select onchange="assignAnalyst('${id}',this.value)" style="font-size:.78rem;padding:.25rem .4rem;border:1px solid var(--br);border-radius:6px;background:#fff">`+
     ANALYSTS.map(a=>`<option ${a===current?'selected':''}>${a}</option>`).join('')+`</select>`
 }
-
 function assignAnalyst(id,name){
   const r=sqlData.find(x=>x.id===id)
   if(!r)return
   r.analyst=name
-  if(r.status==='Pending'&&name!=='Unassigned') r.status='Confirmed'
+  if(r.status==='Pending'&&name!=='Unassigned')r.status='Confirmed'
   renderSQL()
-  // Flash confirmation
-  const toast=document.createElement('div')
-  toast.style.cssText='position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#107C10;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-family:var(--fd);font-weight:600;font-size:.85rem;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2)'
-  toast.textContent = name==='Unassigned' ? `✓ Order ${id} unassigned` : `✓ ${id} assigned to ${name}`
-  document.body.appendChild(toast)
-  setTimeout(()=>toast.remove(),2800)
 }
-
-// Quick-assign this order to Henry G Michuku (admin)
-function assignToHenry(orderId){
-  assignAnalyst(orderId, ADMIN_USER.name)
-}
-
 function renderSQL(){
   const tb=document.getElementById('sqlBody')
-  if(tb)tb.innerHTML=sqlData.map(r=>`<tr>
-    <td><strong>${r.id}</strong></td><td>${r.client}</td><td>${r.email}</td><td>${r.phone}</td>
-    <td>${r.org}</td><td>${r.project}</td><td>${r.service}</td><td>${r.tool}</td><td>${r.format}</td>
-    <td>${analystSelect(r.id,r.analyst)}</td>
-    <td>${r.deadline}</td><td>KES ${r.total}</td><td>KES ${r.deposit}</td><td>KES ${r.balance}</td>
-    <td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td>
-  </tr>`).join('')
-
+  if(tb)tb.innerHTML=sqlData.map(r=>`<tr><td><strong>${r.id}</strong></td><td>${r.client}</td><td>${r.email}</td><td>${r.phone}</td><td>${r.org}</td><td>${r.project}</td><td>${r.service}</td><td>${r.tool}</td><td>${r.format}</td><td>${analystSelect(r.id,r.analyst)}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td>KES ${r.deposit}</td><td>KES ${r.balance}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td></tr>`).join('')
   const ao=document.getElementById('adminOrderBody')
-  if(ao)ao.innerHTML=sqlData.map(r=>`<tr>
-    <td><strong>${r.id}</strong></td>
-    <td>${r.client}</td>
-    <td>${r.project}</td>
-    <td>${r.tool}</td>
-    <td>${analystSelect(r.id,r.analyst)}</td>
-    <td>${r.deadline}</td>
-    <td>KES ${r.total}</td>
-    <td>KES ${r.deposit}</td>
-    <td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td>
-    <td style="display:flex;gap:.3rem;flex-wrap:wrap;align-items:center">
-      ${r.analyst==='Unassigned'
-        ? `<button class="db1 dba" style="background:#0D47A1;white-space:nowrap" onclick="assignToHenry('${r.id}')" title="Assign to ${ADMIN_USER.name} — ${ADMIN_USER.role}">👤 Henry</button>`
-        : r.analyst===ADMIN_USER.name
-          ? `<span style="font-size:.72rem;color:#107C10;font-weight:700">✓ Henry</span>`
-          : ''
-      }
-      <button class="db1 dbb" onclick="alert('Order ${r.id}\\nClient: ${r.client}\\nProject: ${r.project}\\nAnalyst: ${r.analyst}\\nStatus: ${r.status}')">View</button>
-    </td>
-  </tr>`).join('')
+  if(ao)ao.innerHTML=sqlData.map(r=>{
+    const files=getFiles(r.id)
+    return `<tr><td><strong>${r.id}</strong></td><td>${r.client}</td><td>${r.project}</td><td>${r.tool}</td><td>${analystSelect(r.id,r.analyst)}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td>KES ${r.deposit}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td><td>${downloadLinksHTML(files.client)}</td><td><button class="db1 dbb" onclick="alert('Order ${r.id} details:\\n\\nClient: ${r.client}\\nProject: ${r.project}\\nAnalyst: ${r.analyst}\\nStatus: ${r.status}')">View</button></td></tr>`
+  }).join('')
   const rw=document.getElementById('reportTableWrap')
   if(rw)rw.innerHTML=`<table><thead><tr><th>Order ID</th><th>Client</th><th>Email</th><th>Phone</th><th>Organisation</th><th>Project</th><th>Service</th><th>Tool</th><th>Format</th><th>Analyst</th><th>Deadline</th><th>Total</th><th>Deposit</th><th>Balance</th><th>Status</th></tr></thead><tbody>`+sqlData.map(r=>`<tr><td>${r.id}</td><td>${r.client}</td><td>${r.email}</td><td>${r.phone}</td><td>${r.org}</td><td>${r.project}</td><td>${r.service}</td><td>${r.tool}</td><td>${r.format}</td><td>${r.analyst}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td>KES ${r.deposit}</td><td>KES ${r.balance}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td></tr>`).join('')+`</tbody></table>`
-  const cu=currentClient();if(cu)renderMyOrders(cu.email)
+  const cu=currentClient();if(cu){renderMyOrders(cu.email);pbiRenderClientPortal()}
+  renderAnalystUI()
+}
+function renderAnalystUI(){
+  const ab=document.getElementById('anAssignBody')
+  if(ab){
+    const assigned=sqlData.filter(r=>r.status!=='Pending')
+    ab.innerHTML=assigned.length?assigned.map(r=>{
+      const files=getFiles(r.id)
+      return `<tr><td><strong>${r.id}</strong></td><td>${r.client}</td><td>${r.project}</td><td>${r.service}</td><td>${r.tool}</td><td>${r.format}</td><td>${r.deadline}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td><td>${downloadLinksHTML(files.client)}</td><td><button class="db1 dba" onclick="anGoUpload('${r.id}')">Upload</button> <button class="db1 dbb" onclick="anTab('msgs',null)">Chat</button></td></tr>`
+    }).join(''):`<tr><td colspan="10" style="text-align:center;color:var(--sl);padding:1.2rem">No assigned orders yet.</td></tr>`
+  }
+  const sel=document.getElementById('anUploadOrder')
+  if(sel){
+    const prev=sel.value
+    sel.innerHTML=sqlData.map(r=>`<option value="${r.id}">${r.id} — ${r.client} — ${r.project}</option>`).join('')
+    if(prev && sqlData.some(r=>r.id===prev)) sel.value=prev
+    anShowOrderFiles()
+  }
+}
+function anGoUpload(orderId){
+  anTab('upload',document.querySelector('#page-analyst .snav[onclick*="upload"]'))
+  const sel=document.getElementById('anUploadOrder')
+  if(sel){ sel.value=orderId; anShowOrderFiles() }
+}
+function anShowOrderFiles(){
+  const sel=document.getElementById('anUploadOrder'), box=document.getElementById('anClientFiles')
+  if(!sel||!box)return
+  const files=getFiles(sel.value)
+  box.innerHTML=downloadLinksHTML(files.client)
+}
+async function uploadDeliverable(){
+  const sel=document.getElementById('anUploadOrder')
+  const orderId=sel?sel.value:null
+  const fileInput=document.getElementById('anFile')
+  const statusEl=document.getElementById('anUploadStatus')
+  if(!orderId){statusEl.style.color='#D13438';statusEl.textContent='⚠ Select an order first.';return}
+  if(!fileInput||!fileInput.files.length){statusEl.style.color='#D13438';statusEl.textContent='⚠ Choose at least one file to upload.';return}
+  statusEl.style.color='var(--sl)';statusEl.textContent='Uploading...'
+  const newFiles=await filesToDataURLs(fileInput.files)
+  const files=getFiles(orderId)
+  files.analyst=files.analyst.concat(newFiles)
+  setFiles(orderId,files)
+  const r=sqlData.find(x=>x.id===orderId)
+  if(r){
+    const type=document.getElementById('anDelivType').value
+    r.status = type==='Final Deliverable' ? 'Completed' : 'Draft Review'
+  }
+  renderSQL()
+  statusEl.style.color='#107C10'
+  statusEl.textContent='✓ Uploaded! Client has been notified and can now download it from their dashboard.'
+  fileInput.value='';document.getElementById('anFn').textContent=''
+  document.getElementById('anUploadNotes').value=''
+  anShowOrderFiles()
 }
 function addRow(){
   const n=sqlData.length+1
@@ -459,141 +404,68 @@ function mNext(){
     submitOrder()
   }
 }
-// ── FORMSPREE ENDPOINT ───────────────────────────────────────────────────────
-// Connected to gitauhenry467@gmail.com via https://formspree.io/f/xeeboeqy
-const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xeeboeqy'
-
-// ── ADMIN CONFIG — Henry G Michuku ──────────────────────────────────────────
-const ADMIN_USER = {
-  name:     'Henry G Michuku',
-  role:     'Principle Data Analyst',
-  email:    'gitauhenry467@gmail.com',
-  phone:    '+254796701659',
-  initials: 'HM',
-  color:    '#0D47A1'
-}
-
-// ── CLIENT CONFIRMATION EMAIL ─────────────────────────────────────────────────
-// Formspree sends an auto-reply to _replyto when "Auto-response" is ON in the dashboard.
-// This second fetch also sends a human-readable confirmation directly to the client.
-function sendClientConfirmation(data) {
-  const body = [
-    `Dear ${data.name},`,
-    '',
-    'Thank you for submitting your project to DataBridge.',
-    'We have successfully received your report and our team will review it shortly.',
-    '',
-    '─── YOUR SUBMISSION DETAILS ───────────────────────',
-    `Service:          ${data.service}`,
-    `Tool Preference:  ${data.tool}`,
-    `Report Format:    ${data.format}`,
-    `Final Deadline:   ${data.final_deadline || 'To be confirmed'}`,
-    `Country:          ${data.country}`,
-    '───────────────────────────────────────────────────',
-    '',
-    'WHAT HAPPENS NEXT',
-    '1. Our principal analyst will review your submission within 4 hours.',
-    '2. You will receive your Order ID and payment details by email.',
-    '3. Once your deposit is received, analysis begins immediately.',
-    '',
-    'Need to reach us sooner?',
-    '📞 Phone / WhatsApp: +254 748 216 918',
-    '📧 Email: hello@databridge.co.ke',
-    '📍 Nairobi, Kenya',
-    '',
-    'Warm regards,',
-    ADMIN_USER.name,
-    ADMIN_USER.role,
-    'DataBridge — Professional Data Analysis & Research Services'
-  ].join('\n')
-
-  fetch(FORMSPREE_ENDPOINT, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({
-      _replyto: data.email,
-      _subject: `DataBridge — We Have Received Your Project Report ✓`,
-      to_name:  data.name,
-      message:  body,
-      // keep admin cc'd
-      admin_note: `AUTO-CONFIRMATION sent to client: ${data.name} <${data.email}>`
-    })
-  }).catch(() => { /* silent — primary submission already succeeded */ })
-}
-
-// ── ADMIN ALERT: new order notification in Admin → Notifications ─────────────
-function showAdminAlert(orderId, clientName, clientEmail) {
-  const container = document.querySelector('#adtab-notifs div[style*="padding:0"]')
-  if (!container) return
-  const item = document.createElement('div')
-  item.style.cssText = 'padding:.88rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem;background:#E8F5E9'
-  item.innerHTML = `<span>📨</span>
-    <div style="flex:1">
-      <strong style="font-size:.84rem">New order received — ${orderId}</strong>
-      <div style="font-size:.75rem;color:var(--sl)">Client: ${clientName} · ${clientEmail} · Just now · Confirmation sent to client ✓</div>
-    </div>
-    <button class="db1 dba" onclick="adTab('orders',null)">Assign →</button>`
-  container.prepend(item)
-}
-
-function submitOrder() {
-  const v = id => { const el = document.getElementById(id); return el ? el.value : '' }
-  const data = {
-    name: v('ord_name'), email: v('ord_email'), phone: v('ord_phone'), org: v('ord_org') || '—',
-    country: v('ord_country'), service: v('ord_service'), datatype: v('ord_datatype'), tool: v('ord_tool'),
-    format: v('ord_format'), deliverable: v('ord_deliverable'), description: v('ord_desc'),
-    draft_deadline: v('ord_draftdue'), final_deadline: v('ord_finaldue'), notes: v('ord_notes') || '—'
+// Formspree endpoint — connected to gitauhenry467@gmail.com via https://formspree.io/f/xeeboeqy
+const FORMSPREE_ENDPOINT='https://formspree.io/f/xeeboeqy'
+async function submitOrder(){
+  const v=id=>{const el=document.getElementById(id);return el?el.value:''}
+  const data={
+    name:v('ord_name'),email:v('ord_email'),phone:v('ord_phone'),org:v('ord_org')||'—',
+    country:v('ord_country'),service:v('ord_service'),datatype:v('ord_datatype'),tool:v('ord_tool'),
+    format:v('ord_format'),deliverable:v('ord_deliverable'),description:v('ord_desc'),
+    draft_deadline:v('ord_draftdue'),final_deadline:v('ord_finaldue'),notes:v('ord_notes')||'—'
   }
-  if (!data.name || !data.email || !data.service) {
-    document.getElementById('ordStatus').textContent = '⚠ Please fill in your name, email, and service type.'
-    document.getElementById('ordStatus').style.color = '#D13438'
+  if(!data.name||!data.email||!data.service){
+    document.getElementById('ordStatus').textContent='⚠ Please fill in your name, email, and service type.'
+    document.getElementById('ordStatus').style.color='#D13438'
     return
   }
-  const statusEl = document.getElementById('ordStatus')
-  const btn = document.getElementById('mnext')
-  statusEl.style.color = 'var(--sl)'; statusEl.textContent = 'Submitting your project...'
-  btn.disabled = true
+  const statusEl=document.getElementById('ordStatus')
+  const btn=document.getElementById('mnext')
+  statusEl.style.color='var(--sl)';statusEl.textContent='Submitting your project...'
+  btn.disabled=true
 
-  fetch(FORMSPREE_ENDPOINT, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({
-      _subject: `🆕 New DataBridge Order — ${data.name}`,
-      _replyto: data.email,
+  // read any files the client attached, before sending
+  const fileInput=document.getElementById('mfile')
+  let clientFiles=[]
+  try{ if(fileInput&&fileInput.files.length) clientFiles=await filesToDataURLs(fileInput.files) }catch(e){}
+
+  fetch(FORMSPREE_ENDPOINT,{
+    method:'POST',
+    headers:{'Content-Type':'application/json',Accept:'application/json'},
+    body:JSON.stringify({
+      _subject:`New DataBridge Order — ${data.name}`,
+      _replyto:data.email,
+      attached_files:clientFiles.map(f=>f.name).join(', ')||'None',
       ...data
     })
-  }).then(res => {
-    if (!res.ok) throw new Error('Submission failed')
+  }).then(res=>{
+    if(!res.ok) throw new Error('Submission failed')
     return res.json()
-  }).then(() => {
-    // Send client confirmation
-    sendClientConfirmation(data)
-
-    // Add to live tracker
-    const newId = `DB-2025-${String(sqlData.length + 5).padStart(3, '0')}`
+  }).then(()=>{
+    // add to live on-site tracker (Admin → Project Tracker) so it shows up immediately
+    const n=sqlData.length+1
+    const newId=`DB-2025-0${(n+4).toString().padStart(2,'0')}`
     sqlData.push({
-      id: newId, client: data.name, email: data.email, phone: data.phone,
-      org: data.org, project: data.description ? data.description.slice(0, 45) + '…' : data.service,
-      service: data.datatype || data.service, tool: data.tool || 'TBD', format: data.format || 'TBD',
-      analyst: 'Unassigned', deadline: data.final_deadline || 'TBD',
-      total: '0', deposit: '0', balance: '0', status: 'Pending'
+      id:newId,client:data.name,email:data.email,phone:data.phone,
+      org:data.org,project:data.description?data.description.slice(0,40)+'…':data.service,service:data.datatype||data.service,
+      tool:data.tool||'TBD',format:data.format||'TBD',analyst:'Unassigned',deadline:data.final_deadline||'TBD',
+      total:'0',deposit:'0',balance:'0',status:'Pending'
     })
+    setFiles(newId,{client:clientFiles,analyst:[]})
     renderSQL()
-
-    // Notify admin panel
-    showAdminAlert(newId, data.name, data.email)
-
-    statusEl.style.color = '#107C10'
-    statusEl.textContent = '✓ Submitted! A confirmation email has been sent to ' + data.email
-    setTimeout(() => {
-      closeModal(); mStep = 1; btn.disabled = false; statusEl.textContent = ''
-      ;[1, 2, 3].forEach(i => { document.getElementById('ms' + i).style.display = i === 1 ? 'block' : 'none'; document.getElementById('sd' + i).className = 'sdt' + (i === 1 ? ' on' : '') })
-      document.getElementById('mprev').style.display = 'none'; btn.textContent = 'Continue →'
-    }, 2200)
-  }).catch(() => {
-    btn.disabled = false
-    statusEl.style.color = '#D13438'
-    statusEl.textContent = '⚠ Could not submit online. Please email hello@databridge.co.ke or call +254 748 216 918 directly.'
+    statusEl.style.color='#107C10'
+    statusEl.textContent='✓ Submitted! Check your email for confirmation.'
+    setTimeout(()=>{
+      closeModal();mStep=1;btn.disabled=false;statusEl.textContent=''
+      ;[1,2,3].forEach(i=>{document.getElementById('ms'+i).style.display=i===1?'block':'none';document.getElementById('sd'+i).className='sdt'+(i===1?' on':'')})
+      document.getElementById('mprev').style.display='none';btn.textContent='Continue →'
+      if(fileInput)fileInput.value=''
+      const fn=document.getElementById('mfn');if(fn)fn.textContent=''
+    },1800)
+  }).catch(()=>{
+    btn.disabled=false
+    statusEl.style.color='#D13438'
+    statusEl.textContent='⚠ Could not submit online. Please email hello@databridge.co.ke or call +254 748 216 918 directly.'
   })
 }
 function mPrev(){
@@ -616,56 +488,46 @@ function sendChat(){
   c.innerHTML+=`<div class="msg c">${m}</div>`;i.value='';c.scrollTop=c.scrollHeight
   setTimeout(()=>{c.innerHTML+=`<div class="msg a">${reps[rIdx%reps.length]}</div>`;c.scrollTop=c.scrollHeight;rIdx++},900)
 }
-// ===== POWER BI CLIENT DASHBOARD — LIVE DATA =====
+// ===== CLIENT PORTAL — REAL ACCOUNT DATA (no simulation) =====
 let pbiPaused = false;
 function pbiPause(){
   pbiPaused = !pbiPaused;
   document.getElementById('pbiPauseBtn').textContent = pbiPaused ? '▶ Resume' : '⏸ Pause';
 }
-function pbiRefresh(){ pbiUpdateKPIs(); pbiJitterBars(); pbiJitterDonut(); pbiAddOrder(); }
+function moneyNum(s){ return parseFloat(String(s).replace(/,/g,''))||0 }
 
 const pbiKpis = [
-  {label:'Active Orders', value:3, fmt:v=>Math.round(v).toString(), delta:1},
-  {label:'Completed', value:7, fmt:v=>Math.round(v).toString(), delta:0},
-  {label:'Balance Due (KES)', value:12000, fmt:v=>'KES '+(v/1000).toFixed(1)+'k', delta:-2.4},
-  {label:'Unread Messages', value:2, fmt:v=>Math.round(v).toString(), delta:0.5},
+  {label:'Active Orders', value:0, fmt:v=>Math.round(v).toString()},
+  {label:'Completed', value:0, fmt:v=>Math.round(v).toString()},
+  {label:'Balance Due (KES)', value:0, fmt:v=>'KES '+Math.round(v).toLocaleString()},
+  {label:'Total Paid (KES)', value:0, fmt:v=>'KES '+Math.round(v).toLocaleString()},
 ];
 const pbiKpiRow = document.getElementById('pbiKpiRow');
 if(pbiKpiRow){
   pbiKpis.forEach((k,i)=>{
     const el=document.createElement('div');
     el.className='pbi-card';
-    el.innerHTML=`<div class="pl">${k.label}</div><div class="pv" id="pbiKpiVal${i}">${k.fmt(k.value)}</div>
-    <div class="pd ${k.delta>=0?'up':'down'}" id="pbiKpiDelta${i}">${k.delta>=0?'▲':'▼'} ${Math.abs(k.delta).toFixed(1)}%</div>`;
+    el.innerHTML=`<div class="pl">${k.label}</div><div class="pv" id="pbiKpiVal${i}">${k.fmt(k.value)}</div>`;
     pbiKpiRow.appendChild(el);
   });
 }
-function pbiUpdateKPIs(){
-  pbiKpis.forEach((k,i)=>{
-    const change=(Math.random()-0.5)*0.06;
-    k.value=Math.max(0,k.value*(1+change));
-    k.delta=k.delta*0.7+(change*100)*3;
-    const v=document.getElementById('pbiKpiVal'+i), d=document.getElementById('pbiKpiDelta'+i);
-    if(!v)return;
-    v.style.opacity=.25;
-    setTimeout(()=>{v.textContent=k.fmt(k.value);v.style.opacity=1;},150);
-    d.className='pd '+(k.delta>=0?'up':'down');
-    d.textContent=(k.delta>=0?'▲ ':'▼ ')+Math.abs(k.delta).toFixed(1)+'%';
-  });
-}
-
-const pbiWeeks=8;
-let pbiBarData=Array.from({length:pbiWeeks},()=>({a:20+Math.random()*40,b:30+Math.random()*55}));
 const pbiBarSvg=document.getElementById('pbiBarChart');
-function pbiRenderBars(){
+const pbiDonutSvg=document.getElementById('pbiDonut');
+
+function pbiRenderBars(mine){
   if(!pbiBarSvg)return;
-  const w=720,h=190,padB=20,gap=10;
-  const barW=(w/pbiWeeks)-gap-14;
-  const maxV=Math.max(...pbiBarData.map(d=>Math.max(d.a,d.b)));
+  const w=720,h=190,padB=20,slots=8;
+  const barW=(w/slots)-24;
+  const recent=mine.slice(-slots);
+  const bars=Array.from({length:slots},(_,i)=>{
+    const r=recent[i-(slots-recent.length)];
+    return r?{a:moneyNum(r.deposit)/1000,b:moneyNum(r.total)/1000}:{a:0,b:0}
+  });
+  const maxV=Math.max(1,...bars.map(d=>Math.max(d.a,d.b)));
   const scale=(h-padB)/maxV;
   let out='';
-  pbiBarData.forEach((d,i)=>{
-    const x=i*(w/pbiWeeks)+6;
+  bars.forEach((d,i)=>{
+    const x=i*(w/slots)+6;
     const ha=d.a*scale, hb=d.b*scale;
     out+=`<rect x="${x}" y="${h-padB-ha}" width="${barW/2}" height="${ha}" fill="#F2C811" rx="2"/>`;
     out+=`<rect x="${x+barW/2+2}" y="${h-padB-hb}" width="${barW/2}" height="${hb}" fill="#1565C0" rx="2"/>`;
@@ -673,65 +535,66 @@ function pbiRenderBars(){
   out+=`<line x1="0" y1="${h-padB}" x2="${w}" y2="${h-padB}" stroke="#E1DFDD" stroke-width="1"/>`;
   pbiBarSvg.innerHTML=out;
 }
-function pbiJitterBars(){
-  pbiBarData.shift();
-  pbiBarData.push({a:20+Math.random()*40,b:30+Math.random()*55});
-  pbiRenderBars();
-}
 
-let pbiDonut=[
-  {label:'Total Paid',value:48,color:'#1565C0'},
-  {label:'Deposits',value:24,color:'#F2C811'},
-  {label:'Balance',value:12,color:'#D13438'},
-];
-const pbiDonutSvg=document.getElementById('pbiDonut');
-function pbiRenderDonut(){
+function pbiRenderDonut(totalPaid,balanceDue){
   if(!pbiDonutSvg)return;
-  const total=pbiDonut.reduce((s,d)=>s+d.value,0);
+  const total=totalPaid+balanceDue;
+  const c=document.getElementById('pbiDonutCenter');
+  const l=document.getElementById('pbiDonutList');
+  if(total<=0){
+    pbiDonutSvg.innerHTML=`<circle cx="60" cy="60" r="46" fill="none" stroke="#E1DFDD" stroke-width="15"/>`;
+    if(c)c.innerHTML=`<div class="v">KES 0</div><div class="l">No payments yet</div>`;
+    if(l)l.innerHTML=`<div><span>Total Paid</span><b>KES 0</b></div><div><span>Balance Due</span><b>KES 0</b></div>`;
+    return;
+  }
+  const segs=[{label:'Total Paid',value:totalPaid,color:'#1565C0'},{label:'Balance Due',value:balanceDue,color:'#D13438'}];
   const r=46,cx=60,cy=60,thick=15;
-  let angle=-90,segs='';
-  pbiDonut.forEach(d=>{
+  let angle=-90,paths='';
+  segs.forEach(d=>{
+    if(d.value<=0)return;
     const frac=d.value/total, sweep=frac*360, large=sweep>180?1:0;
     const x1=cx+r*Math.cos(angle*Math.PI/180), y1=cy+r*Math.sin(angle*Math.PI/180);
     const end=angle+sweep;
     const x2=cx+r*Math.cos(end*Math.PI/180), y2=cy+r*Math.sin(end*Math.PI/180);
-    segs+=`<path d="M${x1} ${y1} A${r} ${r} 0 ${large} 1 ${x2} ${y2}" fill="none" stroke="${d.color}" stroke-width="${thick}" stroke-linecap="round"/>`;
+    paths+=`<path d="M${x1} ${y1} A${r} ${r} 0 ${large} 1 ${x2} ${y2}" fill="none" stroke="${d.color}" stroke-width="${thick}" stroke-linecap="round"/>`;
     angle=end+3;
   });
-  pbiDonutSvg.innerHTML=segs;
-  const c=document.getElementById('pbiDonutCenter');
-  if(c)c.innerHTML=`<div class="v">KES ${total}k</div><div class="l">Total</div>`;
-  const l=document.getElementById('pbiDonutList');
-  if(l)l.innerHTML=pbiDonut.map(d=>`<div><span>${d.label}</span><b>KES ${d.value.toFixed(0)}k</b></div>`).join('');
-}
-function pbiJitterDonut(){
-  pbiDonut.forEach(d=>d.value=Math.max(4,d.value+(Math.random()-0.5)*5));
-  pbiRenderDonut();
+  pbiDonutSvg.innerHTML=paths;
+  if(c)c.innerHTML=`<div class="v">KES ${Math.round(total).toLocaleString()}</div><div class="l">Total</div>`;
+  if(l)l.innerHTML=`<div><span>Total Paid</span><b>KES ${Math.round(totalPaid).toLocaleString()}</b></div><div><span>Balance Due</span><b>KES ${Math.round(balanceDue).toLocaleString()}</b></div>`;
 }
 
-const pbiProjects=['Survey Data Cleaning','Thematic Analysis — Qual','Logistic Regression Model','Panel Data Fixed Effects','Likert Scale Validation','Time Series Forecast'];
-const pbiTools=['SPSS','R','Python','STATA','NVivo'];
-const pbiStatuses=[['In Progress','prog'],['Confirmed','done'],['Draft Review','review']];
-let pbiOrderSeq=4;
-function pbiAddOrder(){
+function pbiRenderRecentOrders(mine){
   const body=document.getElementById('pbiOrdersBody');
   if(!body)return;
-  const proj=pbiProjects[Math.floor(Math.random()*pbiProjects.length)];
-  const tool=pbiTools[Math.floor(Math.random()*pbiTools.length)];
-  const [label,cls]=pbiStatuses[Math.floor(Math.random()*pbiStatuses.length)];
-  const row=document.createElement('tr');
-  row.className='pbi-new';
-  row.innerHTML=`<td><strong>DB-2025-00${pbiOrderSeq++}</strong></td><td>${proj}</td><td>${tool}</td><td>—</td><td>—</td><td><span class="pbi-status ${cls}">${label}</span></td>`;
-  body.prepend(row);
-  while(body.children.length>6) body.removeChild(body.lastChild);
+  if(mine.length===0){
+    body.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--sl);padding:1.2rem">No orders yet — submit your first project to see it here.</td></tr>`;
+    return;
+  }
+  const clsMap={'In Progress':'prog','Confirmed':'done','Draft Review':'review','Completed':'done','Pending':'review'};
+  body.innerHTML=mine.slice(-6).reverse().map(r=>
+    `<tr><td><strong>${r.id}</strong></td><td>${r.project}</td><td>${r.tool}</td><td>${r.analyst}</td><td>${r.deadline}</td><td><span class="pbi-status ${clsMap[r.status]||'review'}">${r.status}</span></td></tr>`
+  ).join('');
 }
 
-pbiRenderBars();
-pbiRenderDonut();
-setInterval(()=>{ if(!pbiPaused) pbiUpdateKPIs(); },2400);
-setInterval(()=>{ if(!pbiPaused) pbiJitterBars(); },2000);
-setInterval(()=>{ if(!pbiPaused) pbiJitterDonut(); },2800);
-setInterval(()=>{ if(!pbiPaused) pbiAddOrder(); },5000);
+function pbiRenderClientPortal(){
+  const cu=currentClient();
+  const mine=cu?sqlData.filter(r=>r.email && r.email.toLowerCase()===cu.email.toLowerCase()):[];
+  const active=mine.filter(r=>r.status!=='Completed').length;
+  const completed=mine.filter(r=>r.status==='Completed').length;
+  const totalPaid=mine.reduce((s,r)=>s+moneyNum(r.deposit),0);
+  const balanceDue=mine.reduce((s,r)=>s+moneyNum(r.balance),0);
+
+  pbiKpis[0].value=active; pbiKpis[1].value=completed; pbiKpis[2].value=balanceDue; pbiKpis[3].value=totalPaid;
+  pbiKpis.forEach((k,i)=>{ const v=document.getElementById('pbiKpiVal'+i); if(v)v.textContent=k.fmt(k.value); });
+
+  pbiRenderBars(mine);
+  pbiRenderDonut(totalPaid,balanceDue);
+  pbiRenderRecentOrders(mine);
+}
+function pbiRefresh(){ pbiRenderClientPortal(); }
+
+pbiRenderClientPortal();
 
 function clientSend(){
   const i=document.getElementById('clientChatIn'),m=i.value.trim();if(!m)return
