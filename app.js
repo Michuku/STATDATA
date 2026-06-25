@@ -57,6 +57,47 @@ function clientLogout(){
   clientLogoutSilently()
   showPage('home')
 }
+
+// ===== STAFF ACCOUNTS (Admin + Analysts — internal only, not self-signup) =====
+function seedStaff(){
+  if(localStorage.getItem('db_staff'))return
+  const staff={
+    'henry@statvisionconsultancy.co.ke':{name:'Henry G. Michuku',role:'analyst',pass:'analyst123'},
+    'simon@statvisionconsultancy.co.ke':{name:'Simon Macharia',role:'analyst',pass:'analyst123'},
+    'joseph@statvisionconsultancy.co.ke':{name:'Joseph Machuki',role:'admin',pass:'admin123'}
+  }
+  localStorage.setItem('db_staff',JSON.stringify(staff))
+}
+seedStaff()
+function dbStaff(){ try{return JSON.parse(localStorage.getItem('db_staff')||'{}')}catch(e){return {}} }
+function currentStaff(){ try{return JSON.parse(sessionStorage.getItem('db_currentStaff')||'null')}catch(e){return null} }
+function setCurrentStaff(u){ sessionStorage.setItem('db_currentStaff',JSON.stringify(u)) }
+function staffLogout(){ sessionStorage.removeItem('db_currentStaff'); showPage('home') }
+
+let staffWantsRole=null // which portal they were trying to reach, for redirect after login
+function goStaff(){ staffWantsRole=null; routeStaff() }
+function goAdmin(){ staffWantsRole='admin'; routeStaff() }
+function goAnalyst(){ staffWantsRole='analyst'; routeStaff() }
+function routeStaff(){
+  const u=currentStaff()
+  if(u && (!staffWantsRole || u.role===staffWantsRole)){
+    showPage(u.role==='admin'?'admin':'analyst')
+  } else {
+    showPage('staffauth')
+  }
+}
+function staffLogin(){
+  const email=document.getElementById('st_email').value.trim().toLowerCase()
+  const pass=document.getElementById('st_pass').value
+  const err=document.getElementById('staffAuthError')
+  const staff=dbStaff()
+  const u=staff[email]
+  if(!u||u.pass!==pass){ err.textContent='Incorrect email or password.'; err.style.display='block'; return }
+  if(staffWantsRole && u.role!==staffWantsRole){ err.textContent=`This account does not have ${staffWantsRole} access.`; err.style.display='block'; return }
+  err.style.display='none'
+  setCurrentStaff({name:u.name,email,role:u.role})
+  showPage(u.role==='admin'?'admin':'analyst')
+}
 function applyClientSession(u){
   const initials=(u.name||'? ?').split(' ').filter(Boolean).slice(0,2).map(s=>s[0].toUpperCase()).join('')
   const av=document.getElementById('cUserAvatar'), nm=document.getElementById('cUserName')
@@ -256,11 +297,8 @@ const SVCS=[
 
 // SQL TABLE DATA
 let sqlData=[
-  {id:'DB-2025-001',client:'Amina Mwangi',email:'amina@email.com',phone:'+254 712 000 000',org:'University of Nairobi',project:'MSc Dissertation — Regression',service:'Quantitative',tool:'SPSS',format:'APA 7th',analyst:'Henry G. Michuku',deadline:'28 Jun 2025',total:'25,000',deposit:'12,500',balance:'12,500',status:'In Progress'},
-  {id:'DB-2025-002',client:'Kevin Omondi',email:'kevin@ngo.org',phone:'+254 722 111 222',org:'Health NGO Kenya',project:'NGO Impact Evaluation',service:'Mixed Methods',tool:'R',format:'Harvard',analyst:'Simon Macharia',deadline:'15 Jul 2025',total:'32,000',deposit:'16,000',balance:'16,000',status:'Confirmed'},
-  {id:'DB-2025-003',client:'Sarah Njoki',email:'sarah@brand.co',phone:'+254 733 222 333',org:'Retail Brand',project:'Consumer Cluster Analysis',service:'Quantitative',tool:'Python',format:'Custom',analyst:'Simon Macharia',deadline:'20 Jul 2025',total:'36,000',deposit:'18,000',balance:'18,000',status:'Draft Review'},
-  {id:'DB-2025-004',client:'John Kamau',email:'john@email.com',phone:'+254 744 333 444',org:'Independent',project:'Policy Research — Logistic Reg.',service:'Quantitative',tool:'Stata',format:'APA 7th',analyst:'Henry G. Michuku',deadline:'25 Jul 2025',total:'28,000',deposit:'14,000',balance:'0',status:'Completed'},
-  {id:'DB-2025-005',client:'Faith Achieng',email:'faith@uni.ac.ke',phone:'+254 755 444 555',org:'Moi University',project:'Econometrics Thesis',service:'Quantitative',tool:'Stata',format:'APA 7th',analyst:'Joseph Machuki',deadline:'30 Jul 2025',total:'22,000',deposit:'11,000',balance:'11,000',status:'Confirmed'},
+  // Starts empty on a fresh deploy — every row here is a REAL order, either submitted
+  // through the public order form, or added manually by Admin via "+ New Project".
 ]
 const scls={'In Progress':'b-pr','Confirmed':'b-pn','Draft Review':'b-rv','Completed':'b-dn','Pending':'b-pn','Overdue':'b-ov'}
 const ANALYSTS=['Henry G. Michuku','Simon Macharia','Joseph Machuki','Unassigned']
@@ -275,6 +313,110 @@ function assignAnalyst(id,name){
   if(r.status==='Pending'&&name!=='Unassigned')r.status='Confirmed'
   renderSQL()
 }
+
+// ===== PROJECTS TABLE (Admin — unified with real sqlData, no duplicate fake table) =====
+let projectFilter='all'
+function openAddProjectModal(){
+  document.getElementById('addProjectForm').style.display='block'
+  const n=sqlData.length+1
+  document.getElementById('np_ref').value=`DB-2025-${n.toString().padStart(3,'0')}`
+  document.getElementById('addProjectForm').scrollIntoView({behavior:'smooth',block:'center'})
+}
+function saveProject(){
+  const v=id=>{const el=document.getElementById(id);return el?el.value:''}
+  const ref=v('np_ref')||`DB-${Date.now()}`
+  if(!v('np_client')||!v('np_title')){ alert('Please fill in at least the client name and project title.'); return }
+  sqlData.push({
+    id:ref, client:v('np_client'), email:v('np_email')||'—', phone:v('np_phone')||'—', org:'—',
+    project:v('np_title'), service:v('np_service'), tool:v('np_tool')||'TBD', format:'—',
+    analyst:v('np_analyst'), deadline:v('np_deadline')||'TBD',
+    total:v('np_budget')||'0', deposit:'0', balance:v('np_budget')||'0',
+    status:v('np_status')||'Pending'
+  })
+  renderSQL()
+  document.getElementById('addProjectForm').style.display='none'
+  ;['np_ref','np_client','np_email','np_phone','np_title','np_tool','np_date','np_deadline','np_budget'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+}
+function filterProjects(btn,status){
+  projectFilter=status
+  document.querySelectorAll('#adtab-orders .fb2').forEach(b=>b.classList.remove('on'))
+  if(btn)btn.classList.add('on')
+  renderProjectsTable()
+}
+function renderProjectsTable(){
+  const tb=document.getElementById('projectsBody')
+  if(!tb)return
+  const rows=projectFilter==='all'?sqlData:sqlData.filter(r=>r.status===projectFilter)
+  tb.innerHTML=rows.length?rows.map(r=>`<tr><td><strong>${r.id}</strong></td><td>${r.client}</td><td>${r.email}</td><td>${r.phone}</td><td>${r.project}</td><td>${r.service}</td><td>${r.tool}</td><td>—</td><td>${r.deadline}</td><td>KES ${r.total}</td><td>${analystSelect(r.id,r.analyst)}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td><td><button class="db1 dbb" onclick="alert('Order ${r.id}\\nClient: ${r.client}\\nStatus: ${r.status}')">View</button></td></tr>`).join('')
+    : `<tr><td colspan="13" style="text-align:center;color:var(--sl);padding:1.4rem">No orders match this filter yet.</td></tr>`
+}
+function exportProjects(){ exportCSV() }
+
+function renderAdminOverview(){
+  const active=document.getElementById('adKpiActive')
+  if(!active)return // admin overview not in DOM context yet
+  const activeOrders=sqlData.filter(r=>r.status!=='Completed').length
+  const totalPaid=sqlData.reduce((s,r)=>s+moneyNum(r.deposit),0)
+  const totalBalance=sqlData.reduce((s,r)=>s+moneyNum(r.balance),0)
+  const totalClients=new Set(sqlData.map(r=>(r.email||'').toLowerCase()).filter(Boolean)).size
+
+  document.getElementById('adKpiActive').textContent=activeOrders
+  document.getElementById('adKpiActiveSub').textContent=sqlData.length?`${sqlData.length} total order${sqlData.length===1?'':'s'}`:'No orders yet'
+  document.getElementById('adKpiRevenue').textContent='KES '+Math.round(totalPaid).toLocaleString()
+  document.getElementById('adKpiClients').textContent=totalClients
+  document.getElementById('adKpiBalance').textContent='KES '+Math.round(totalBalance).toLocaleString()
+
+  // Revenue summary (real numbers, no fake trend line)
+  const rs=document.getElementById('adRevenueSummary')
+  if(rs){
+    const totalValue=sqlData.reduce((s,r)=>s+moneyNum(r.total),0)
+    if(sqlData.length===0){
+      rs.innerHTML=`<p style="color:var(--sl);font-size:.84rem;text-align:center;padding:1.4rem 0">No orders have been made yet — revenue will appear here once clients submit and pay for projects.</p>`
+    } else {
+      rs.innerHTML=`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .2rem;border-bottom:1px solid var(--br)"><span style="font-size:.84rem;color:var(--sl)">Total Order Value</span><strong style="font-family:var(--fd)">KES ${Math.round(totalValue).toLocaleString()}</strong></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .2rem;border-bottom:1px solid var(--br)"><span style="font-size:.84rem;color:var(--sl)">Total Collected (Deposits)</span><strong style="font-family:var(--fd);color:#107C10">KES ${Math.round(totalPaid).toLocaleString()}</strong></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .2rem"><span style="font-size:.84rem;color:var(--sl)">Outstanding Balance</span><strong style="font-family:var(--fd);color:#D13438">KES ${Math.round(totalBalance).toLocaleString()}</strong></div>`
+    }
+  }
+
+  // Status breakdown chart (real counts only)
+  const sc=document.getElementById('adStatusChart')
+  if(sc){
+    const order=['Pending','Confirmed','In Progress','Draft Review','Completed','Overdue']
+    const colors={'Pending':'#F5A623','Confirmed':'#42A5F5','In Progress':'#1976D2','Draft Review':'#9C27B0','Completed':'#43A047','Overdue':'#E53935'}
+    const counts=order.map(s=>sqlData.filter(r=>r.status===s).length)
+    const max=Math.max(1,...counts)
+    if(sqlData.length===0){
+      sc.innerHTML=`<text x="140" y="78" text-anchor="middle" font-size="11" fill="#90A4AE">No orders yet</text>`
+    } else {
+      const used=order.filter((s,i)=>counts[i]>0)
+      const usedCounts=counts.filter(c=>c>0)
+      const slotW=260/Math.max(1,used.length)
+      let out=''
+      used.forEach((s,i)=>{
+        const c=usedCounts[i], h=(c/max)*95, x=10+i*slotW, w=Math.min(45,slotW-15)
+        out+=`<rect x="${x}" y="${120-h}" width="${w}" height="${h}" rx="5" fill="${colors[s]}" opacity=".88"/>`
+        out+=`<text x="${x+w/2}" y="${120-h-7}" text-anchor="middle" font-size="10" font-weight="700" fill="${colors[s]}">${c}</text>`
+        out+=`<text x="${x+w/2}" y="135" text-anchor="middle" font-size="7.5" fill="#546E7A">${s}</text>`
+      })
+      sc.innerHTML=out
+    }
+  }
+
+  // Recent activity (built from real orders, most recent first)
+  const ra=document.getElementById('adRecentActivity')
+  if(ra){
+    if(sqlData.length===0){
+      ra.innerHTML=`<div style="padding:1.4rem;text-align:center;color:var(--sl);font-size:.85rem">No activity yet — this feed will fill up as clients submit orders and analysts work on them.</div>`
+    } else {
+      ra.innerHTML=sqlData.slice(-6).reverse().map(r=>{
+        const icon=r.status==='Completed'?'✅':r.status==='Draft Review'?'📤':r.status==='Pending'?'🆕':'📋'
+        return `<div style="padding:.85rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem"><span>${icon}</span><div style="flex:1"><strong style="font-size:.84rem">${r.id} — ${r.project}</strong><div style="font-size:.75rem;color:var(--sl)">${r.client} · Analyst: ${r.analyst} · <span class="badge ${scls[r.status]||'b-pn'}" style="font-size:.65rem">${r.status}</span></div></div><button class="db1 dbb" onclick="adTab('orders',null)">View</button></div>`
+      }).join('')
+    }
+  }
+}
 function renderSQL(){
   const tb=document.getElementById('sqlBody')
   if(tb)tb.innerHTML=sqlData.map(r=>`<tr><td><strong>${r.id}</strong></td><td>${r.client}</td><td>${r.email}</td><td>${r.phone}</td><td>${r.org}</td><td>${r.project}</td><td>${r.service}</td><td>${r.tool}</td><td>${r.format}</td><td>${analystSelect(r.id,r.analyst)}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td>KES ${r.deposit}</td><td>KES ${r.balance}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td></tr>`).join('')
@@ -287,6 +429,8 @@ function renderSQL(){
   if(rw)rw.innerHTML=`<table><thead><tr><th>Order ID</th><th>Client</th><th>Email</th><th>Phone</th><th>Organisation</th><th>Project</th><th>Service</th><th>Tool</th><th>Format</th><th>Analyst</th><th>Deadline</th><th>Total</th><th>Deposit</th><th>Balance</th><th>Status</th></tr></thead><tbody>`+sqlData.map(r=>`<tr><td>${r.id}</td><td>${r.client}</td><td>${r.email}</td><td>${r.phone}</td><td>${r.org}</td><td>${r.project}</td><td>${r.service}</td><td>${r.tool}</td><td>${r.format}</td><td>${r.analyst}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td>KES ${r.deposit}</td><td>KES ${r.balance}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td></tr>`).join('')+`</tbody></table>`
   const cu=currentClient();if(cu){renderMyOrders(cu.email);pbiRenderClientPortal()}
   renderAnalystUI()
+  renderProjectsTable()
+  renderAdminOverview()
 }
 function renderAnalystUI(){
   const ab=document.getElementById('anAssignBody')
@@ -342,14 +486,14 @@ async function uploadDeliverable(){
 }
 function addRow(){
   const n=sqlData.length+1
-  sqlData.push({id:`DB-2025-00${n+4}`,client:'New Client',email:'client@email.com',phone:'+254 7XX XXX XXX',org:'Organisation',project:'New Project',service:'Quantitative',tool:'SPSS',format:'APA 7th',analyst:'Unassigned',deadline:'TBD',total:'0',deposit:'0',balance:'0',status:'Pending'})
+  sqlData.push({id:`DB-2025-${n.toString().padStart(3,'0')}`,client:'New Client',email:'client@email.com',phone:'+254 7XX XXX XXX',org:'Organisation',project:'New Project',service:'Quantitative',tool:'SPSS',format:'APA 7th',analyst:'Unassigned',deadline:'TBD',total:'0',deposit:'0',balance:'0',status:'Pending'})
   renderSQL();alert('New order row added!')
 }
 function exportCSV(){
   const h=['Order ID','Client','Email','Phone','Organisation','Project','Service','Tool','Format','Analyst','Deadline','Total','Deposit','Balance','Status']
   const rows=sqlData.map(r=>[r.id,r.client,r.email,r.phone,r.org,r.project,r.service,r.tool,r.format,r.analyst,r.deadline,'KES '+r.total,'KES '+r.deposit,'KES '+r.balance,r.status].map(v=>`"${v}"`).join(','))
   const c=[h.join(','),...rows].join('\n')
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(c);a.download='DataBridge_Orders.csv';a.click()
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(c);a.download='StatVision Consultancy_Orders.csv';a.click()
 }
 window.addEventListener('load',renderSQL)
 
@@ -433,7 +577,7 @@ async function submitOrder(){
     method:'POST',
     headers:{'Content-Type':'application/json',Accept:'application/json'},
     body:JSON.stringify({
-      _subject:`New DataBridge Order — ${data.name}`,
+      _subject:`New StatVision Consultancy Order — ${data.name}`,
       _replyto:data.email,
       attached_files:clientFiles.map(f=>f.name).join(', ')||'None',
       ...data
@@ -444,7 +588,7 @@ async function submitOrder(){
   }).then(()=>{
     // add to live on-site tracker (Admin → Project Tracker) so it shows up immediately
     const n=sqlData.length+1
-    const newId=`DB-2025-0${(n+4).toString().padStart(2,'0')}`
+    const newId=`DB-2025-${n.toString().padStart(3,'0')}`
     sqlData.push({
       id:newId,client:data.name,email:data.email,phone:data.phone,
       org:data.org,project:data.description?data.description.slice(0,40)+'…':data.service,service:data.datatype||data.service,
@@ -465,7 +609,7 @@ async function submitOrder(){
   }).catch(()=>{
     btn.disabled=false
     statusEl.style.color='#D13438'
-    statusEl.textContent='⚠ Could not submit online. Please email hello@databridge.co.ke or call +254 748 216 918 directly.'
+    statusEl.textContent='⚠ Could not submit online. Please email hello@statvisionconsultancy.co.ke or call +254 748 216 918 directly.'
   })
 }
 function mPrev(){

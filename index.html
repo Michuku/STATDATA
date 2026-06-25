@@ -3,23 +3,22 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>DataBridge — Data Analysis & Research Services</title>
+<title>StatVision Consultancy — Data Analysis & Research Services</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="style.css">
-  <script src="app.js" defer></script>
+  <script src="script.js" defer></script>
 </head>
 <body>
 <!-- NAV -->
 <nav id="mainNav">
   <div class="ni">
-    <a href="#" class="logo" onclick="showPage('home');return false">Data<span>Bridge</span></a>
+    <a href="#" class="logo" onclick="showPage('home');return false">StatVision<span> Consultancy</span></a>
     <ul class="nl">
       <li><a href="#" onclick="showPage('home');window.scrollTo(0,0);return false"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a></li>
       <li><a href="#" onclick="showPage('home');scrollTo2('services');return false">Services</a></li>
       <li><a href="#" onclick="showPage('home');scrollTo2('portfolio');return false">Portfolio</a></li>
       <li><a href="#" onclick="showPage('home');scrollTo2('how');return false">How It Works</a></li>
       <li><a href="#" onclick="goClient();return false">Client</a></li>
-      <li><a href="#" onclick="showPage('admin');return false">Admin</a></li>
       <li><a href="#" class="ncta" onclick="openModal();return false">Start Project</a></li>
     </ul>
     <button class="ntog" onclick="toggleMM()" aria-label="Menu"><span></span><span></span><span></span></button>
@@ -30,7 +29,6 @@
   <a href="#" onclick="showPage('home');scrollTo2('services');toggleMM();return false">Services</a>
   <a href="#" onclick="showPage('home');scrollTo2('portfolio');toggleMM();return false">Portfolio</a>
   <a href="#" onclick="goClient();toggleMM();return false">Client Dashboard</a>
-  <a href="#" onclick="showPage('admin');toggleMM();return false">Admin Dashboard</a>
   <a href="#" class="ncta" onclick="openModal();toggleMM();return false">Start Project</a>
 </div>
 
@@ -43,8 +41,8 @@
     <div>
       <div class="hlbl">Professional Data Services</div>
       <h1>Your data,<br/>expertly <em>decoded.</em></h1>
-      <p class="hero-sub">DataBridge connects researchers, businesses, students, and organisations with expert data analysts. Submit your dataset — or let us collect it — and receive publication-ready results using SPSS, Stata, R, or Python.</p>
-      <div class="hcon">📞 <a href="tel:+254748216918">+254 748 216 918</a>&nbsp;|&nbsp;📧 <a href="mailto:hello@databridge.co.ke" style="color:rgba(255,255,255,.65)">hello@databridge.co.ke</a>&nbsp;|&nbsp;📍 Nairobi, Kenya</div>
+      <p class="hero-sub">StatVision Consultancy connects researchers, businesses, students, and organisations with expert data analysts. Submit your dataset — or let us collect it — and receive publication-ready results using SPSS, Stata, R, or Python.</p>
+      <div class="hcon">📞 <a href="tel:+254748216918">+254 748 216 918</a>&nbsp;|&nbsp;📧 <a href="mailto:hello@statvisionconsultancy.co.ke" style="color:rgba(255,255,255,.65)">hello@statvisionconsultancy.co.ke</a>&nbsp;|&nbsp;📍 Nairobi, Kenya</div>
       <div class="hbtns">
         <a href="#" class="bp" onclick="openModal();return false">▶ Start Your Project</a>
         <a href="#" class="bo" onclick="openChat();return false">💬 Consult an Analyst</a>
@@ -216,10 +214,10 @@
     <h2 class="st">What our clients say</h2>
     <div class="tgd2">
       <div class="testc fu"><div class="tstars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
-        <p class="ttext">DataBridge saved my dissertation. The analyst explained every regression output clearly, the APA report was perfect, and it was delivered two days early. Passed with distinction!</p>
+        <p class="ttext">StatVision Consultancy saved my dissertation. The analyst explained every regression output clearly, the APA report was perfect, and it was delivered two days early. Passed with distinction!</p>
         <div class="tauth"><div class="tav">AM</div><div><div class="tname">Amina M.</div><div class="trole">MSc Economics, University of Nairobi</div></div></div></div>
       <div class="testc fu" style="transition-delay:.1s"><div class="tstars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
-        <p class="ttext">We needed an impact evaluation for our donor within two weeks. DataBridge delivered on time and the quality of the mixed-methods analysis exceeded our expectations. Highly recommended.</p>
+        <p class="ttext">We needed an impact evaluation for our donor within two weeks. StatVision Consultancy delivered on time and the quality of the mixed-methods analysis exceeded our expectations. Highly recommended.</p>
         <div class="tauth"><div class="tav" style="background:var(--am);color:#0D1B2A">KO</div><div><div class="tname">Kevin O.</div><div class="trole">M&E Officer, Health NGO, Kenya</div></div></div></div>
       <div class="testc fu" style="transition-delay:.2s"><div class="tstars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
         <p class="ttext">The real-time chat made communication seamless. The Python cluster analysis revealed customer segments we had completely missed. Excellent turnaround and value for money.</p>
@@ -231,7 +229,7 @@
 <!-- CTA -->
 <section class="ctasec" id="contact">
   <h2>Ready to transform your data?</h2>
-  <p>Join 218+ clients who trust DataBridge. Call us now: <strong style="color:var(--am)">+254 748 216 918</strong></p>
+  <p>Join 218+ clients who trust StatVision Consultancy. Call us now: <strong style="color:var(--am)">+254 748 216 918</strong></p>
   <div class="ctabtns">
     <a href="#" class="ba" onclick="openModal();return false">▶ Start Your Project</a>
     <a href="#" class="bw" onclick="openChat();return false">💬 Talk to an Analyst</a>
@@ -244,7 +242,7 @@
   <div class="fi">
     <div class="fgd">
       <div class="fbrand">
-        <a href="#" class="logo" onclick="showPage('home');return false">Data<span style="color:var(--am)">Bridge</span></a>
+        <a href="#" class="logo" onclick="showPage('home');return false">StatVision<span style="color:var(--am)"> Consultancy</span></a>
         <p>Professional data analysis and research services. SPSS, Stata, R, Python. Serving students, businesses, NGOs, and governments. Nairobi, Kenya.</p>
       </div>
       <div class="fcol"><h4>Services</h4><ul>
@@ -257,15 +255,14 @@
         <li><a href="#">FAQ</a></li><li><a href="#">Contact</a></li></ul></div>
       <div class="fcol"><h4>Contact</h4><ul>
         <li><a href="tel:+254748216918">+254 748 216 918</a></li>
-        <li><a href="mailto:hello@databridge.co.ke">hello@databridge.co.ke</a></li>
+        <li><a href="mailto:hello@statvisionconsultancy.co.ke">hello@statvisionconsultancy.co.ke</a></li>
         <li><a href="#">WhatsApp Us</a></li>
         <li><a href="#" onclick="goClient();return false">Client Login</a></li>
-        <li><a href="#" onclick="showPage('admin');return false">Admin Dashboard</a></li>
-        <li><a href="#" onclick="showPage('analyst');return false" style="opacity:.55;font-size:.78rem">Staff / Analyst Login</a></li>
+        <li><a href="#" onclick="goStaff();return false" style="opacity:.55;font-size:.78rem">Staff Login</a></li>
         <li><a href="#">Privacy Policy</a></li></ul></div>
     </div>
     <div class="fbot">
-      <p>© 2025 DataBridge. All rights reserved. Nairobi, Kenya. Tel: +254 748 216 918</p>
+      <p>© 2025 StatVision Consultancy. All rights reserved. Nairobi, Kenya. Tel: +254 748 216 918</p>
       <div class="socs"><a href="#" class="soc">in</a><a href="#" class="soc">𝕏</a><a href="#" class="soc">✆</a></div>
     </div>
   </div>
@@ -275,7 +272,7 @@
 <div id="page-clientauth" class="page">
   <div class="authwrap">
     <div class="authbox">
-      <div class="authlogo">Data<span>Bridge</span></div>
+      <div class="authlogo">StatVision<span> Consultancy</span></div>
       <div class="authtabs">
         <button class="authtab on" id="atab-login" onclick="authSwitch('login')">Log In</button>
         <button class="authtab" id="atab-signup" onclick="authSwitch('signup')">Create Account</button>
@@ -289,7 +286,7 @@
         <p class="authswitch">No account? <a href="#" onclick="authSwitch('signup');return false">Create one</a></p>
       </div>
       <div id="authpane-signup" style="display:none">
-        <p class="authsub">Create your DataBridge account to submit and track orders.</p>
+        <p class="authsub">Create your StatVision Consultancy account to submit and track orders.</p>
         <div class="frow"><div class="fg"><label>Full Name</label><input type="text" id="su_name" placeholder="Your full name"/></div><div class="fg"><label>Phone</label><input type="tel" id="su_phone" placeholder="+254 7XX XXX XXX"/></div></div>
         <div class="fg"><label>Email Address</label><input type="email" id="su_email" placeholder="your@email.com"/></div>
         <div class="fg"><label>Password</label><input type="password" id="su_pass" placeholder="Create a password"/></div>
@@ -305,7 +302,7 @@
 <div id="page-client" class="page">
 <div class="dlayout">
   <div class="dsb">
-    <div class="dsb-logo">Data<span>Bridge</span><span class="dsb-role">Client Portal</span></div>
+    <div class="dsb-logo">StatVision<span> Consultancy</span><span class="dsb-role">Client Portal</span></div>
     <span class="slbl2">Main Menu</span>
     <button class="snav active" onclick="cTab('overview',this)"><span class="sni">📊</span>Overview</button>
     <button class="snav" onclick="cTab('orders',this)"><span class="sni">📋</span>My Orders</button>
@@ -484,7 +481,7 @@
           <div style="padding:0">
             <div style="padding:.9rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.9rem;background:#FFF8E1"><span style="font-size:1.2rem">📤</span><div style="flex:1"><strong style="font-size:.85rem">Draft uploaded for DB-2025-001</strong><div style="font-size:.76rem;color:var(--sl)">Henry G. Michuku uploaded your draft. Review and send feedback. · 2 hours ago</div></div><button class="db1 dba" onclick="cTab('docs',null)">View</button></div>
             <div style="padding:.9rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.9rem"><span style="font-size:1.2rem">💳</span><div style="flex:1"><strong style="font-size:.85rem">Deposit confirmed — DB-2025-001</strong><div style="font-size:.76rem;color:var(--sl)">KES 12,500 received via M-Pesa. Order confirmed. · 12 Jun 2025</div></div><button class="db1 dbb" onclick="cTab('invoices',null)">Receipt</button></div>
-            <div style="padding:.9rem 1.4rem;display:flex;align-items:center;gap:.9rem"><span style="font-size:1.2rem">🆕</span><div style="flex:1"><strong style="font-size:.85rem">Account created successfully</strong><div style="font-size:.76rem;color:var(--sl)">Welcome to DataBridge! Your account is ready. · 1 Jun 2025</div></div></div>
+            <div style="padding:.9rem 1.4rem;display:flex;align-items:center;gap:.9rem"><span style="font-size:1.2rem">🆕</span><div style="flex:1"><strong style="font-size:.85rem">Account created successfully</strong><div style="font-size:.76rem;color:var(--sl)">Welcome to StatVision Consultancy! Your account is ready. · 1 Jun 2025</div></div></div>
           </div>
         </div>
       </div>
@@ -508,10 +505,24 @@
 </div>
 </div><!-- end client -->
 <!-- ══════════ ANALYST PORTAL ══════════ -->
+<!-- ══════════ STAFF AUTH (ADMIN / ANALYST — internal only) ══════════ -->
+<div id="page-staffauth" class="page">
+  <div class="authwrap">
+    <div class="authbox">
+      <div class="authlogo">StatVision<span> Consultancy</span></div>
+      <p class="authsub" style="text-align:center;margin-top:-.4rem">Staff Login — internal access only</p>
+      <div class="fg"><label>Work Email</label><input type="email" id="st_email" placeholder="you@statvisionconsultancy.co.ke"/></div>
+      <div class="fg"><label>Password</label><input type="password" id="st_pass" placeholder="••••••••"/></div>
+      <p id="staffAuthError" style="color:#D13438;font-size:.8rem;display:none;margin-bottom:.6rem"></p>
+      <button class="bp" style="width:100%" onclick="staffLogin()">Log In</button>
+      <p class="authback"><a href="#" onclick="showPage('home');return false">← Back to website</a></p>
+    </div>
+  </div>
+</div>
 <div id="page-analyst" class="page">
 <div class="dlayout">
   <div class="dsb">
-    <div class="dsb-logo">Data<span>Bridge</span><span class="dsb-role">Analyst Portal</span></div>
+    <div class="dsb-logo">StatVision<span> Consultancy</span><span class="dsb-role">Analyst Portal</span></div>
     <span class="slbl2">Analyst Menu</span>
     <button class="snav active" onclick="anTab('overview',this)"><span class="sni">📊</span>My Dashboard</button>
     <button class="snav" onclick="anTab('assignments',this)"><span class="sni">📋</span>My Assignments<span class="ndot"></span></button>
@@ -520,6 +531,7 @@
     <button class="snav" onclick="anTab('upload',this)"><span class="sni">📤</span>Upload Deliverable</button>
     <button class="snav" onclick="anTab('profile',this)"><span class="sni">👤</span>My Profile</button>
     <div class="ssep"></div>
+    <button class="snav" onclick="staffLogout()"><span class="sni">🚪</span>Log Out</button>
     <button class="snav" onclick="showPage('home')"><span class="sni">🏠</span>Back to Website</button>
   </div>
   <div class="dmain">
@@ -637,7 +649,7 @@
       <div id="antab-profile" style="display:none">
         <div class="odtl" style="max-width:560px">
           <h3 style="font-family:var(--fd);font-size:1rem;margin-bottom:1.1rem">Analyst Profile</h3>
-          <div class="frow"><div class="fg"><label>Full Name</label><input type="text" value="Henry G. Michuku"/></div><div class="fg"><label>Email</label><input type="email" value="henry@databridge.co.ke"/></div></div>
+          <div class="frow"><div class="fg"><label>Full Name</label><input type="text" value="Henry G. Michuku"/></div><div class="fg"><label>Email</label><input type="email" value="henry@statvisionconsultancy.co.ke"/></div></div>
           <div class="frow"><div class="fg"><label>Phone</label><input type="tel" value="+254 700 111 222"/></div><div class="fg"><label>Role</label><input type="text" value="Principal Data Analyst" readonly/></div></div>
           <div class="fg"><label>Specialisation</label><input type="text" value="Quantitative Analysis, Econometrics, Health Research"/></div>
           <div class="fg"><label>Tools Proficiency</label><input type="text" value="SPSS, Stata, R, Excel"/></div>
@@ -658,7 +670,7 @@
 <div id="page-admin" class="page">
 <div class="dlayout">
   <div class="dsb">
-    <div class="dsb-logo">Data<span>Bridge</span><span class="dsb-role">Admin Panel</span></div>
+    <div class="dsb-logo">StatVision<span> Consultancy</span><span class="dsb-role">Admin Panel</span></div>
     <span class="slbl2">Administration</span>
     <button class="snav active" onclick="adTab('overview',this)"><span class="sni">📊</span>Overview</button>
     <button class="snav" onclick="adTab('orders',this)"><span class="sni">📋</span>All Orders<span class="ndot"></span></button>
@@ -671,65 +683,34 @@
     <button class="snav" onclick="adTab('content',this)"><span class="sni">🌐</span>Website Content</button>
     <div class="ssep"></div>
     <button class="snav" onclick="adTab('analysts',this)"><span class="sni">➕</span>Add Analyst</button>
+    <button class="snav" onclick="staffLogout()"><span class="sni">🚪</span>Log Out</button>
     <button class="snav" onclick="showPage('home')"><span class="sni">🏠</span>Back to Website</button>
   </div>
   <div class="dmain">
     <div class="dtop">
       <div class="dtitle" id="adTabTitle">Admin Overview</div>
-      <div class="dusr"><div class="dav" style="background:var(--am);color:#0D1B2A">AD</div><div class="duname">Admin — DataBridge</div></div>
+      <div class="dusr"><div class="dav" style="background:var(--am);color:#0D1B2A">AD</div><div class="duname">Admin — StatVision Consultancy</div></div>
     </div>
     <div class="dcontent">
       <!-- OVERVIEW -->
       <div id="adtab-overview">
         <div class="kgd">
-          <div class="kpi"><div class="kpic" style="background:#E3F2FD">📋</div><div><div class="kpiv">12</div><div class="kpil">Active Orders</div><div class="kpit tu">▲ 3 new today</div></div></div>
-          <div class="kpi"><div class="kpic" style="background:#E8F5E9">💰</div><div><div class="kpiv">KES 284k</div><div class="kpil">Revenue (Month)</div><div class="kpit tu">▲ 18% growth</div></div></div>
-          <div class="kpi"><div class="kpic" style="background:#FFF3E0">👥</div><div><div class="kpiv">47</div><div class="kpil">Total Clients</div><div class="kpit tu">▲ 5 this week</div></div></div>
-          <div class="kpi"><div class="kpic" style="background:#FFEBEE">⚠️</div><div><div class="kpiv">2</div><div class="kpil">Deadlines Today</div><div class="kpit td2">▼ Action needed</div></div></div>
+          <div class="kpi"><div class="kpic" style="background:#E3F2FD">📋</div><div><div class="kpiv" id="adKpiActive">0</div><div class="kpil">Active Orders</div><div class="kpit" id="adKpiActiveSub">No orders yet</div></div></div>
+          <div class="kpi"><div class="kpic" style="background:#E8F5E9">💰</div><div><div class="kpiv" id="adKpiRevenue">KES 0</div><div class="kpil">Total Revenue Collected</div><div class="kpit" id="adKpiRevenueSub">From deposits paid</div></div></div>
+          <div class="kpi"><div class="kpic" style="background:#FFF3E0">👥</div><div><div class="kpiv" id="adKpiClients">0</div><div class="kpil">Total Clients</div><div class="kpit" id="adKpiClientsSub">Unique submitted orders</div></div></div>
+          <div class="kpi"><div class="kpic" style="background:#FFEBEE">⚠️</div><div><div class="kpiv" id="adKpiBalance">KES 0</div><div class="kpil">Outstanding Balance</div><div class="kpit" id="adKpiBalanceSub">Across all orders</div></div></div>
         </div>
         <div class="crow">
-          <div class="cc"><h3>Monthly Revenue Trend (KES)</h3>
-            <svg width="100%" height="150" viewBox="0 0 300 150">
-              <defs><linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1976D2" stop-opacity=".4"/><stop offset="100%" stop-color="#1976D2" stop-opacity="0"/></linearGradient></defs>
-              <line x1="25" y1="10" x2="25" y2="130" stroke="#E3F2FD" stroke-width="1"/>
-              <line x1="25" y1="130" x2="295" y2="130" stroke="#E3F2FD" stroke-width="1"/>
-              <polygon points="45,115 85,100 125,82 165,65 205,48 245,32 285,20 285,130 45,130" fill="url(#rg)"/>
-              <polyline points="45,115 85,100 125,82 165,65 205,48 245,32 285,20" fill="none" stroke="#1976D2" stroke-width="2.5" stroke-linejoin="round"/>
-              <circle cx="285" cy="20" r="4" fill="var(--am)"/>
-              <text x="45" y="145" font-size="8" text-anchor="middle" fill="#90A4AE">Jan</text>
-              <text x="85" y="145" font-size="8" text-anchor="middle" fill="#90A4AE">Feb</text>
-              <text x="125" y="145" font-size="8" text-anchor="middle" fill="#90A4AE">Mar</text>
-              <text x="165" y="145" font-size="8" text-anchor="middle" fill="#90A4AE">Apr</text>
-              <text x="205" y="145" font-size="8" text-anchor="middle" fill="#90A4AE">May</text>
-              <text x="245" y="145" font-size="8" text-anchor="middle" fill="#90A4AE">Jun</text>
-              <text x="285" y="145" font-size="8" text-anchor="middle" fill="#90A4AE">Jul</text>
-            </svg>
+          <div class="cc"><h3>Revenue Summary</h3>
+            <div id="adRevenueSummary" style="display:flex;flex-direction:column;gap:.7rem;padding:.5rem 0"></div>
           </div>
           <div class="cc"><h3>Order Status Breakdown</h3>
-            <svg width="100%" height="150" viewBox="0 0 280 150">
-              <rect x="15" y="25" width="45" height="95" rx="5" fill="#1976D2" opacity=".85"/>
-              <rect x="75" y="50" width="45" height="70" rx="5" fill="#F5A623" opacity=".85"/>
-              <rect x="135" y="75" width="45" height="45" rx="5" fill="#43A047" opacity=".85"/>
-              <rect x="195" y="95" width="45" height="25" rx="5" fill="#E53935" opacity=".85"/>
-              <text x="37" y="133" text-anchor="middle" font-size="8" fill="#546E7A">In Progress</text>
-              <text x="97" y="133" text-anchor="middle" font-size="8" fill="#546E7A">Confirmed</text>
-              <text x="157" y="133" text-anchor="middle" font-size="8" fill="#546E7A">Completed</text>
-              <text x="217" y="133" text-anchor="middle" font-size="8" fill="#546E7A">Overdue</text>
-              <text x="37" y="20" text-anchor="middle" font-size="10" font-weight="700" fill="#1976D2">12</text>
-              <text x="97" y="45" text-anchor="middle" font-size="10" font-weight="700" fill="#F5A623">8</text>
-              <text x="157" y="70" text-anchor="middle" font-size="10" font-weight="700" fill="#43A047">5</text>
-              <text x="217" y="90" text-anchor="middle" font-size="10" font-weight="700" fill="#E53935">2</text>
-            </svg>
+            <svg width="100%" height="150" viewBox="0 0 280 150" id="adStatusChart"></svg>
           </div>
         </div>
         <div class="dtw">
-          <div class="dth"><h3>Recent Activity</h3><div class="dtha"><button class="db1 dbb">View All</button></div></div>
-          <div style="padding:0">
-            <div style="padding:.85rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem;background:#FFF8E1"><span>🆕</span><div style="flex:1"><strong style="font-size:.84rem">New client registered — John Kamau</strong><div style="font-size:.75rem;color:var(--sl)">10 minutes ago · john@email.com · +254 733 000 000</div></div><button class="db1 dbb" onclick="adTab('clients',null)">View</button></div>
-            <div style="padding:.85rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem;background:#FFF3F3"><span>⚠️</span><div style="flex:1"><strong style="font-size:.84rem">Deadline in 24hrs — DB-2025-001</strong><div style="font-size:.75rem;color:var(--sl)">Analyst: Henry G. Michuku · Client: Amina Mwangi</div></div><button class="db1 dbc" onclick="adTab('orders',null)">Alert</button></div>
-            <div style="padding:.85rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem"><span>💳</span><div style="flex:1"><strong style="font-size:.84rem">Deposit received — DB-2025-008</strong><div style="font-size:.75rem;color:var(--sl)">KES 18,000 via M-Pesa · Sarah Njoki · 2 hours ago</div></div><button class="db1 dbb">Receipt</button></div>
-            <div style="padding:.85rem 1.4rem;display:flex;align-items:center;gap:.85rem"><span>📤</span><div style="flex:1"><strong style="font-size:.84rem">Draft uploaded — DB-2025-003</strong><div style="font-size:.75rem;color:var(--sl)">Simon Macharia uploaded final draft · 3 hours ago</div></div><button class="db1 dbb">View</button></div>
-          </div>
+          <div class="dth"><h3>Recent Activity</h3><div class="dtha"><button class="db1 dbb" onclick="adTab('orders',null)">View All</button></div></div>
+          <div style="padding:0" id="adRecentActivity"></div>
         </div>
       </div>
       <!-- ALL ORDERS -->
@@ -844,7 +825,7 @@
         </div>
         <div id="createAnalystForm" style="display:none;background:#fff;border:1px solid var(--br);border-radius:14px;padding:1.5rem;margin-bottom:1.35rem;max-width:600px">
           <h4 style="font-family:var(--fd);margin-bottom:1rem;color:var(--ch)">New Analyst Account</h4>
-          <div class="frow"><div class="fg"><label>Full Name</label><input type="text" placeholder="Analyst full name"/></div><div class="fg"><label>Email</label><input type="email" placeholder="analyst@databridge.co.ke"/></div></div>
+          <div class="frow"><div class="fg"><label>Full Name</label><input type="text" placeholder="Analyst full name"/></div><div class="fg"><label>Email</label><input type="email" placeholder="analyst@statvisionconsultancy.co.ke"/></div></div>
           <div class="frow"><div class="fg"><label>Phone</label><input type="tel" placeholder="+254..."/></div><div class="fg"><label>Role</label><select><option>Analyst</option><option>Senior Analyst</option><option>Lead Analyst</option></select></div></div>
           <div class="fg"><label>Specialisation</label><input type="text" placeholder="e.g. Quantitative Analysis, Econometrics"/></div>
           <div class="frow"><div class="fg"><label>Tools</label><input type="text" placeholder="SPSS, R, Python, Stata"/></div><div class="fg"><label>Temp Password</label><input type="password" placeholder="Temporary password"/></div></div>
@@ -855,9 +836,9 @@
         </div>
         <div class="dtw">
           <div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Specialisation</th><th>Tools</th><th>Active</th><th>Completed</th><th>Rating</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-            <tr><td><strong>Henry G. Michuku</strong><br/><span style="font-size:.7rem;color:var(--sl)">Principal Data Analyst</span></td><td>henry@databridge.co.ke</td><td>Quantitative</td><td>SPSS, Stata, R</td><td>4</td><td>28</td><td>⭐ 4.9</td><td><span class="badge b-dn">Active</span></td><td><button class="db1 dbb">Edit</button> <button class="db1 dbc">Deactivate</button></td></tr>
-            <tr><td><strong>Simon Macharia</strong><br/><span style="font-size:.7rem;color:var(--sl)">Chief Analyst</span></td><td>simon@databridge.co.ke</td><td>Data Science</td><td>Python, R</td><td>3</td><td>15</td><td>⭐ 4.8</td><td><span class="badge b-dn">Active</span></td><td><button class="db1 dbb">Edit</button> <button class="db1 dbc">Deactivate</button></td></tr>
-            <tr><td><strong>Joseph Machuki</strong><br/><span style="font-size:.7rem;color:var(--sl)">Admin · Economist & Statistician</span></td><td>joseph@databridge.co.ke</td><td>Econometrics, Statistics</td><td>Stata, SPSS</td><td>2</td><td>19</td><td>⭐ 5.0</td><td><span class="badge b-dn">Active</span></td><td><button class="db1 dbb">Edit</button> <button class="db1 dbc">Deactivate</button></td></tr>
+            <tr><td><strong>Henry G. Michuku</strong><br/><span style="font-size:.7rem;color:var(--sl)">Principal Data Analyst</span></td><td>henry@statvisionconsultancy.co.ke</td><td>Quantitative</td><td>SPSS, Stata, R</td><td>4</td><td>28</td><td>⭐ 4.9</td><td><span class="badge b-dn">Active</span></td><td><button class="db1 dbb">Edit</button> <button class="db1 dbc">Deactivate</button></td></tr>
+            <tr><td><strong>Simon Macharia</strong><br/><span style="font-size:.7rem;color:var(--sl)">Chief Analyst</span></td><td>simon@statvisionconsultancy.co.ke</td><td>Data Science</td><td>Python, R</td><td>3</td><td>15</td><td>⭐ 4.8</td><td><span class="badge b-dn">Active</span></td><td><button class="db1 dbb">Edit</button> <button class="db1 dbc">Deactivate</button></td></tr>
+            <tr><td><strong>Joseph Machuki</strong><br/><span style="font-size:.7rem;color:var(--sl)">Admin · Economist & Statistician</span></td><td>joseph@statvisionconsultancy.co.ke</td><td>Econometrics, Statistics</td><td>Stata, SPSS</td><td>2</td><td>19</td><td>⭐ 5.0</td><td><span class="badge b-dn">Active</span></td><td><button class="db1 dbb">Edit</button> <button class="db1 dbc">Deactivate</button></td></tr>
           </tbody></table></div>
         </div>
       </div>
@@ -917,7 +898,7 @@
           </div>
           <div class="fg"><label>Hero Tagline</label><input type="text" value="Your data, expertly decoded."/></div>
           <div class="fg"><label>Contact Phone (displayed on site)</label><input type="tel" value="+254 748 216 918"/></div>
-          <div class="fg"><label>Contact Email</label><input type="email" value="hello@databridge.co.ke"/></div>
+          <div class="fg"><label>Contact Email</label><input type="email" value="hello@statvisionconsultancy.co.ke"/></div>
           <button class="db1 dba" onclick="alert('Website content updated!')">Save & Update Website</button>
         </div>
       </div>
@@ -975,8 +956,8 @@
 <!-- CHAT WIDGET -->
 <button class="chatbub" onclick="openChat()" aria-label="Chat with analyst">💬<span class="cbdg">1</span></button>
 <div class="chatpan" id="chatPan">
-  <div class="cphead"><div class="cav2">👩‍💻</div><div><h4>DataBridge Analyst</h4><p>Typically replies in minutes · +254 748 216 918</p></div><div class="odot"></div></div>
-  <div class="cmsgs" id="chatMsgs"><div class="msg a">Hi! 👋 Welcome to DataBridge. I'm here to help with your project. What kind of data analysis do you need?</div></div>
+  <div class="cphead"><div class="cav2">👩‍💻</div><div><h4>StatVision Consultancy Analyst</h4><p>Typically replies in minutes · +254 748 216 918</p></div><div class="odot"></div></div>
+  <div class="cmsgs" id="chatMsgs"><div class="msg a">Hi! 👋 Welcome to StatVision Consultancy. I'm here to help with your project. What kind of data analysis do you need?</div></div>
   <div class="cinp"><input type="text" id="chatIn" placeholder="Type your question..." onkeydown="if(event.key==='Enter')sendChat()"/><button class="csend" onclick="sendChat()">➤</button></div>
 </div>
 
