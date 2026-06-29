@@ -3,20 +3,53 @@ function showPage(p){
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'))
   const pg=document.getElementById('page-'+p)
   if(pg){pg.classList.add('active');window.scrollTo(0,0)}
+  sessionStorage.setItem('db_lastPage',p)
   renderSQL()
 }
 function scrollTo2(id){
   setTimeout(()=>{const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth'})},150)
 }
 
-// ===== CLIENT ACCOUNTS (browser-local — see note in chat for real multi-device accounts) =====
-function dbUsers(){ try{return JSON.parse(localStorage.getItem('db_users')||'{}')}catch(e){return {}} }
-function saveUsers(u){ localStorage.setItem('db_users',JSON.stringify(u)) }
-function currentClient(){ try{return JSON.parse(localStorage.getItem('db_currentClient')||'null')}catch(e){return null} }
-function setCurrentClient(u){ localStorage.setItem('db_currentClient',JSON.stringify(u)) }
-function clientLogoutSilently(){ localStorage.removeItem('db_currentClient') }
 
-function goClient(){
+// ===== REAL ACCOUNTS (Firebase Authentication + Firestore — shared across every device) =====
+let currentClientCache=null, currentStaffCache=null
+function currentClient(){ return currentClientCache }
+function currentStaff(){ return currentStaffCache }
+
+let authReadyPromise = new Promise(resolve=>{
+  fbAuth.onAuthStateChanged(async user=>{
+    currentClientCache=null; currentStaffCache=null
+    if(user){
+      try{
+        const doc = await fbDB.collection('users').doc(user.uid).get()
+        if(doc.exists){
+          const data=doc.data()
+          if(data.role==='client') currentClientCache={name:data.name,phone:data.phone,email:data.email,created:data.created,uid:user.uid}
+          else currentStaffCache={name:data.name,email:data.email,role:data.role,uid:user.uid}
+        }
+      }catch(e){ console.warn('Could not load user profile:',e.message) }
+    }
+    resolve()
+  })
+})
+
+// Stay on the page the person was on, instead of bouncing back to Home on every refresh.
+authReadyPromise.then(()=>{
+  const last=sessionStorage.getItem('db_lastPage')
+  if(!last||last==='home'||last==='clientauth'||last==='staffauth')return
+  if(last==='client'){
+    const u=currentClient()
+    if(u){ showPage('client'); applyClientSession(u) }
+    else sessionStorage.removeItem('db_lastPage')
+  } else if(last==='admin'||last==='analyst'){
+    const u=currentStaff()
+    if(u && u.role===last){ showPage(last) }
+    else sessionStorage.removeItem('db_lastPage')
+  }
+})
+
+async function goClient(){
+  await authReadyPromise
   const u=currentClient()
   if(u){ showPage('client'); applyClientSession(u) }
   else { showPage('clientauth') }
@@ -27,58 +60,81 @@ function authSwitch(which){
   document.getElementById('authpane-login').style.display=which==='login'?'block':'none'
   document.getElementById('authpane-signup').style.display=which==='signup'?'block':'none'
 }
-function clientSignup(){
+async function clientSignup(){
   const name=document.getElementById('su_name').value.trim()
   const phone=document.getElementById('su_phone').value.trim()
   const email=document.getElementById('su_email').value.trim().toLowerCase()
   const pass=document.getElementById('su_pass').value
   const err=document.getElementById('authError2')
   if(!name||!email||!pass){ err.textContent='Please fill in your name, email, and password.'; err.style.display='block'; return }
-  const users=dbUsers()
-  if(users[email]){ err.textContent='An account with this email already exists. Try logging in.'; err.style.display='block'; return }
-  users[email]={name,phone,email,pass,created:Date.now()}
-  saveUsers(users)
-  err.style.display='none'
-  setCurrentClient({name,phone,email,created:users[email].created})
-  showPage('client'); applyClientSession(users[email])
+  if(pass.length<6){ err.textContent='Password must be at least 6 characters.'; err.style.display='block'; return }
+  err.style.display='none';err.textContent=''
+  try{
+    const cred=await fbAuth.createUserWithEmailAndPassword(email,pass)
+    const created=Date.now()
+    await fbDB.collection('users').doc(cred.user.uid).set({name,phone,email,role:'client',created})
+    currentClientCache={name,phone,email,created,uid:cred.user.uid}
+    // welcome notification
+    await fbDB.collection('notifications').add({uid:cred.user.uid,orderId:null,icon:'🎉',title:'Welcome to StatVision Consultancy!',body:'Your account is ready. Submit your first project any time.',tab:null,read:false,ts:Date.now()})
+    showPage('client'); applyClientSession(currentClientCache)
+  }catch(e){
+    err.textContent = e.code==='auth/email-already-in-use' ? 'An account with this email already exists. Try logging in.'
+      : e.code==='auth/invalid-email' ? 'Please enter a valid email address.'
+      : (e.message||'Could not create account. Please try again.')
+    err.style.display='block'
+  }
 }
-function clientLogin(){
+async function clientLogin(){
   const email=document.getElementById('li_email').value.trim().toLowerCase()
   const pass=document.getElementById('li_pass').value
   const err=document.getElementById('authError')
-  const users=dbUsers()
-  const u=users[email]
-  if(!u||u.pass!==pass){ err.textContent='Incorrect email or password.'; err.style.display='block'; return }
-  err.style.display='none'
-  setCurrentClient({name:u.name,phone:u.phone,email:u.email,created:u.created})
-  showPage('client'); applyClientSession(u)
+  err.style.display='none';err.textContent=''
+  try{
+    const cred=await fbAuth.signInWithEmailAndPassword(email,pass)
+    const doc=await fbDB.collection('users').doc(cred.user.uid).get()
+    if(!doc.exists || doc.data().role!=='client'){
+      await fbAuth.signOut()
+      err.textContent='This account does not have client access.'; err.style.display='block'; return
+    }
+    const data=doc.data()
+    currentClientCache={name:data.name,phone:data.phone,email:data.email,created:data.created,uid:cred.user.uid}
+    showPage('client'); applyClientSession(currentClientCache)
+  }catch(e){
+    err.textContent='Incorrect email or password.'; err.style.display='block'
+  }
 }
 function clientLogout(){
-  clientLogoutSilently()
+  fbAuth.signOut(); currentClientCache=null
   showPage('home')
 }
 
-// ===== STAFF ACCOUNTS (Admin + Analysts — internal only, not self-signup) =====
-function seedStaff(){
-  if(localStorage.getItem('db_staff'))return
-  const staff={
-    'henry@statvisionconsultancy.co.ke':{name:'Henry G. Michuku',role:'analyst',pass:'analyst123'},
-    'simon@statvisionconsultancy.co.ke':{name:'Simon Macharia',role:'analyst',pass:'analyst123'},
-    'joseph@statvisionconsultancy.co.ke':{name:'Joseph Machuki',role:'admin',pass:'admin123'}
+// ===== STAFF ACCOUNTS (Admin + Analysts — created via seedStaffOnce(), see chat instructions) =====
+async function seedStaffOnce(){
+  const staff=[
+    {email:'henry@statvisionconsultancy.co.ke',pass:'admin123',name:'Henry Gitau Michuku',role:'admin'},
+    {email:'simon@statvisionconsultancy.co.ke',pass:'analyst123',name:'Simon Macharia',role:'analyst'},
+    {email:'joseph@statvisionconsultancy.co.ke',pass:'analyst123',name:'Joseph Machuki',role:'analyst'}
+  ]
+  for(const s of staff){
+    try{
+      const cred=await fbAuth.createUserWithEmailAndPassword(s.email,s.pass)
+      await fbDB.collection('users').doc(cred.user.uid).set({name:s.name,email:s.email,role:s.role,created:Date.now()})
+      console.log('✓ Created staff account:',s.email)
+    }catch(e){
+      console.log(s.email,'→',e.code==='auth/email-already-in-use'?'already exists, skipping':e.message)
+    }
   }
-  localStorage.setItem('db_staff',JSON.stringify(staff))
+  await fbAuth.signOut()
+  console.log('Done. You can now use Staff Login on the website.')
 }
-seedStaff()
-function dbStaff(){ try{return JSON.parse(localStorage.getItem('db_staff')||'{}')}catch(e){return {}} }
-function currentStaff(){ try{return JSON.parse(sessionStorage.getItem('db_currentStaff')||'null')}catch(e){return null} }
-function setCurrentStaff(u){ sessionStorage.setItem('db_currentStaff',JSON.stringify(u)) }
-function staffLogout(){ sessionStorage.removeItem('db_currentStaff'); showPage('home') }
+window.seedStaffOnce=seedStaffOnce
 
-let staffWantsRole=null // which portal they were trying to reach, for redirect after login
-function goStaff(){ staffWantsRole=null; routeStaff() }
-function goAdmin(){ staffWantsRole='admin'; routeStaff() }
-function goAnalyst(){ staffWantsRole='analyst'; routeStaff() }
-function routeStaff(){
+let staffWantsRole=null
+async function goStaff(){ staffWantsRole=null; await routeStaff() }
+async function goAdmin(){ staffWantsRole='admin'; await routeStaff() }
+async function goAnalyst(){ staffWantsRole='analyst'; await routeStaff() }
+async function routeStaff(){
+  await authReadyPromise
   const u=currentStaff()
   if(u && (!staffWantsRole || u.role===staffWantsRole)){
     showPage(u.role==='admin'?'admin':'analyst')
@@ -86,17 +142,32 @@ function routeStaff(){
     showPage('staffauth')
   }
 }
-function staffLogin(){
+async function staffLogin(){
   const email=document.getElementById('st_email').value.trim().toLowerCase()
   const pass=document.getElementById('st_pass').value
   const err=document.getElementById('staffAuthError')
-  const staff=dbStaff()
-  const u=staff[email]
-  if(!u||u.pass!==pass){ err.textContent='Incorrect email or password.'; err.style.display='block'; return }
-  if(staffWantsRole && u.role!==staffWantsRole){ err.textContent=`This account does not have ${staffWantsRole} access.`; err.style.display='block'; return }
-  err.style.display='none'
-  setCurrentStaff({name:u.name,email,role:u.role})
-  showPage(u.role==='admin'?'admin':'analyst')
+  err.style.display='none';err.textContent=''
+  try{
+    const cred=await fbAuth.signInWithEmailAndPassword(email,pass)
+    const doc=await fbDB.collection('users').doc(cred.user.uid).get()
+    const data=doc.exists?doc.data():null
+    if(!data || (data.role!=='admin'&&data.role!=='analyst')){
+      await fbAuth.signOut()
+      err.textContent='This account does not have staff access.'; err.style.display='block'; return
+    }
+    if(staffWantsRole && data.role!==staffWantsRole){
+      await fbAuth.signOut()
+      err.textContent=`This account does not have ${staffWantsRole} access.`; err.style.display='block'; return
+    }
+    currentStaffCache={name:data.name,email:data.email,role:data.role,uid:cred.user.uid}
+    showPage(data.role==='admin'?'admin':'analyst')
+  }catch(e){
+    err.textContent='Incorrect email or password.'; err.style.display='block'
+  }
+}
+function staffLogout(){
+  fbAuth.signOut(); currentStaffCache=null
+  showPage('home')
 }
 function applyClientSession(u){
   const initials=(u.name||'? ?').split(' ').filter(Boolean).slice(0,2).map(s=>s[0].toUpperCase()).join('')
@@ -116,38 +187,71 @@ function applyClientSession(u){
   if(fp)fp.value=u.phone||''
   renderMyOrders(u.email)
   pbiRenderClientPortal()
+  renderClientDocs()
+  subscribeNotifications(u.uid)
 }
 function renderMyOrders(email){
   const wrap=document.getElementById('myOrdersBody')
   if(!wrap)return
   const mine=sqlData.filter(r=>r.email && r.email.toLowerCase()===String(email).toLowerCase())
   if(mine.length===0){
-    wrap.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--sl);padding:1.4rem">No orders yet — click "+ New Order" to submit your first project.</td></tr>`
+    wrap.innerHTML=`<tr><td colspan="9" style="text-align:center;color:var(--sl);padding:1.4rem">No orders yet — click "+ New Order" to submit your first project.</td></tr>`
+  } else {
+    wrap.innerHTML=mine.map(r=>{
+      const files=getFiles(r.id)
+      const deliverable=files.analyst.length?downloadLinksHTML(files.analyst):'<span style="color:var(--sl);font-size:.74rem">Not ready yet</span>'
+      return `<tr><td><strong>${r.id}</strong></td><td>${r.project}</td><td>${r.tool}</td><td>${r.analyst}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td><td>${deliverable}</td><td><button class="db1 dbb" onclick="generateInvoicePDF('${r.id}')">⬇ PDF</button></td></tr>`
+    }).join('')
+  }
+  renderMyInvoices(mine)
+}
+function renderMyInvoices(mine){
+  const wrap=document.getElementById('myInvoicesBody')
+  if(!wrap)return
+  if(!mine.length){
+    wrap.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--sl);padding:1.4rem">No invoices yet — they'll appear here once you place an order.</td></tr>`
     return
   }
   wrap.innerHTML=mine.map(r=>{
-    const files=getFiles(r.id)
-    const deliverable=files.analyst.length?downloadLinksHTML(files.analyst):'<span style="color:var(--sl);font-size:.74rem">Not ready yet</span>'
-    return `<tr><td><strong>${r.id}</strong></td><td>${r.project}</td><td>${r.tool}</td><td>${r.analyst}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td><td>${deliverable}</td></tr>`
+    const bal=moneyNum(r.balance)
+    const balColor=bal<=0?'color:#107C10':'color:#D13438'
+    const statusLabel=bal<=0?'<span class="badge b-dn">Fully Paid</span>':`<span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span>`
+    return `<tr>
+      <td><strong>${r.id}</strong></td>
+      <td style="max-width:160px;white-space:normal">${r.project}</td>
+      <td>${r.service||r.tool||'—'}</td>
+      <td>${r.analyst||'—'}</td>
+      <td><strong>KES ${r.total}</strong></td>
+      <td style="color:#107C10;font-weight:600">KES ${r.deposit}</td>
+      <td style="${balColor};font-weight:700">KES ${r.balance}</td>
+      <td>${statusLabel}</td>
+      <td><button class="db1 dba" style="white-space:nowrap" onclick="generateInvoicePDF('${r.id}')">⬇ PDF Invoice</button></td>
+    </tr>`
   }).join('')
 }
 
 // ===== FILE STORAGE (browser-local — see chat note on real shared storage) =====
 function getFiles(orderId){
-  try{return JSON.parse(localStorage.getItem('db_files_'+orderId)||'{"client":[],"analyst":[]}')}
-  catch(e){return {client:[],analyst:[]}}
+  const r=sqlData.find(x=>x.id===orderId)
+  return (r&&r.files) ? r.files : {client:[],analyst:[]}
 }
-function setFiles(orderId,obj){ localStorage.setItem('db_files_'+orderId,JSON.stringify(obj)) }
-function filesToDataURLs(fileList){
-  return Promise.all([...fileList].map(f=>new Promise(res=>{
-    const r=new FileReader()
-    r.onload=()=>res({name:f.name,type:f.type||'application/octet-stream',size:f.size,dataUrl:r.result})
-    r.readAsDataURL(f)
-  })))
+function setFiles(orderId,obj){
+  return fbDB.collection('orders').doc(orderId).set({files:obj},{merge:true})
+}
+async function uploadFilesToStorage(orderId,role,fileList){
+  const results=[]
+  for(const f of [...fileList]){
+    const path=`orders/${orderId}/${role}/${Date.now()}_${f.name}`
+    const ref=fbStorage.ref(path)
+    await ref.put(f)
+    const url=await ref.getDownloadURL()
+    results.push({name:f.name,url,size:f.size,type:f.type||'application/octet-stream'})
+  }
+  return results
 }
 function downloadLinksHTML(files){
   if(!files||!files.length)return '<span style="color:var(--sl);font-size:.74rem">None</span>'
-  return files.map(f=>`<a href="${f.dataUrl}" download="${f.name}" style="display:block;font-size:.78rem;color:var(--b2);margin-bottom:.2rem">📎 ${f.name}</a>`).join('')
+  return files.map(f=>`<a href="${f.url}" target="_blank" rel="noopener" style="display:block;font-size:.78rem;color:var(--b2);margin-bottom:.2rem">📎 ${f.name}</a>`).join('')
 }
 
 // NAV
@@ -296,10 +400,14 @@ const SVCS=[
 })()
 
 // SQL TABLE DATA
-let sqlData=[
-  // Starts empty on a fresh deploy — every row here is a REAL order, either submitted
-  // through the public order form, or added manually by Admin via "+ New Project".
-]
+let sqlData=[]
+// Live sync: sqlData always mirrors the 'orders' collection in Firestore.
+// Every browser (client, analyst, admin) sees the same data, in real time.
+fbDB.collection('orders').onSnapshot(snap=>{
+  sqlData=snap.docs.map(d=>({id:d.id,...d.data()}))
+  renderSQL()
+},err=>console.warn('Orders sync error:',err.message))
+
 const scls={'In Progress':'b-pr','Confirmed':'b-pn','Draft Review':'b-rv','Completed':'b-dn','Pending':'b-pn','Overdue':'b-ov'}
 const ANALYSTS=['Henry G. Michuku','Simon Macharia','Joseph Machuki','Unassigned']
 function analystSelect(id,current){
@@ -309,9 +417,8 @@ function analystSelect(id,current){
 function assignAnalyst(id,name){
   const r=sqlData.find(x=>x.id===id)
   if(!r)return
-  r.analyst=name
-  if(r.status==='Pending'&&name!=='Unassigned')r.status='Confirmed'
-  renderSQL()
+  const newStatus=(r.status==='Pending'&&name!=='Unassigned')?'Confirmed':r.status
+  fbDB.collection('orders').doc(id).update({analyst:name,status:newStatus})
 }
 
 // ===== PROJECTS TABLE (Admin — unified with real sqlData, no duplicate fake table) =====
@@ -326,14 +433,13 @@ function saveProject(){
   const v=id=>{const el=document.getElementById(id);return el?el.value:''}
   const ref=v('np_ref')||`DB-${Date.now()}`
   if(!v('np_client')||!v('np_title')){ alert('Please fill in at least the client name and project title.'); return }
-  sqlData.push({
-    id:ref, client:v('np_client'), email:v('np_email')||'—', phone:v('np_phone')||'—', org:'—',
+  fbDB.collection('orders').doc(ref).set({
+    client:v('np_client'), email:v('np_email')||'—', phone:v('np_phone')||'—', org:'—',
     project:v('np_title'), service:v('np_service'), tool:v('np_tool')||'TBD', format:'—',
     analyst:v('np_analyst'), deadline:v('np_deadline')||'TBD',
     total:v('np_budget')||'0', deposit:'0', balance:v('np_budget')||'0',
-    status:v('np_status')||'Pending'
+    status:v('np_status')||'Pending', files:{client:[],analyst:[]}
   })
-  renderSQL()
   document.getElementById('addProjectForm').style.display='none'
   ;['np_ref','np_client','np_email','np_phone','np_title','np_tool','np_date','np_deadline','np_budget'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
 }
@@ -347,10 +453,401 @@ function renderProjectsTable(){
   const tb=document.getElementById('projectsBody')
   if(!tb)return
   const rows=projectFilter==='all'?sqlData:sqlData.filter(r=>r.status===projectFilter)
-  tb.innerHTML=rows.length?rows.map(r=>`<tr><td><strong>${r.id}</strong></td><td>${r.client}</td><td>${r.email}</td><td>${r.phone}</td><td>${r.project}</td><td>${r.service}</td><td>${r.tool}</td><td>—</td><td>${r.deadline}</td><td>KES ${r.total}</td><td>${analystSelect(r.id,r.analyst)}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td><td><button class="db1 dbb" onclick="alert('Order ${r.id}\\nClient: ${r.client}\\nStatus: ${r.status}')">View</button></td></tr>`).join('')
+  tb.innerHTML=rows.length?rows.map(r=>{
+    const priced=moneyNum(r.total)>0
+    const actionBtn = priced
+      ? `<button class="db1 dba" onclick="openPriceModal('${r.id}')">✏️ Edit Price</button>`
+      : `<button class="db1" style="background:#D13438;color:#fff;border:none" onclick="openPriceModal('${r.id}')">💰 Set Price</button>`
+    return `<tr>
+      <td><strong>${r.id}</strong></td>
+      <td>${r.client}</td><td>${r.email}</td><td>${r.phone}</td>
+      <td>${r.project}</td><td>${r.service}</td><td>${r.tool}</td>
+      <td>—</td><td>${r.deadline}</td>
+      <td>${priced?`<strong style="color:#107C10">KES ${r.total}</strong>`:'<span style="color:#D13438;font-weight:600">Not set</span>'}</td>
+      <td>${analystSelect(r.id,r.analyst)}</td>
+      <td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td>
+      <td style="display:flex;gap:.4rem;flex-wrap:wrap">${actionBtn}</td>
+    </tr>`
+  }).join('')
     : `<tr><td colspan="13" style="text-align:center;color:var(--sl);padding:1.4rem">No orders match this filter yet.</td></tr>`
 }
+
+// ── PRICE MODAL ──────────────────────────────────────────────────────
+function openPriceModal(orderId){
+  const r=sqlData.find(x=>x.id===orderId)
+  if(!r)return
+  // build modal HTML if not already in DOM
+  let m=document.getElementById('priceModal')
+  if(!m){
+    m=document.createElement('div')
+    m.id='priceModal'
+    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center'
+    m.innerHTML=`
+      <div style="background:#fff;border-radius:16px;padding:2rem;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+          <h3 style="font-family:var(--fd);font-size:1.05rem;color:var(--ch)">💰 Set Project Price</h3>
+          <button onclick="closePriceModal()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--sl)">✕</button>
+        </div>
+        <div id="pmOrderInfo" style="background:var(--bl);border-radius:10px;padding:.8rem 1rem;margin-bottom:1.1rem;font-size:.84rem;color:var(--sl)"></div>
+        <input type="hidden" id="pmOrderId"/>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:.9rem">
+          <div class="fg"><label>Total Price (KES)</label><input type="number" id="pmTotal" placeholder="e.g. 25000" min="0"/></div>
+          <div class="fg"><label>Deposit Paid (KES)</label><input type="number" id="pmDeposit" placeholder="e.g. 12500" min="0"/></div>
+        </div>
+        <div class="fg" style="margin-bottom:.9rem"><label>Assign Analyst</label>
+          <select id="pmAnalyst">
+            <option>Unassigned</option>
+            <option>Henry Gitau Michuku</option>
+            <option>Simon Macharia</option>
+            <option>Joseph Machuki</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:1.1rem"><label>Deadline</label><input type="date" id="pmDeadline"/></div>
+        <p id="pmStatus" style="font-size:.78rem;margin-bottom:.6rem;min-height:1rem"></p>
+        <div style="display:flex;gap:.65rem">
+          <button class="db1 dba" style="flex:1;padding:.65rem" onclick="savePriceAndConfirm()">✅ Save & Confirm Order</button>
+          <button class="db1 dbb" onclick="closePriceModal()">Cancel</button>
+        </div>
+      </div>`
+    document.body.appendChild(m)
+  }
+  // populate
+  const r2=sqlData.find(x=>x.id===orderId)
+  document.getElementById('pmOrderId').value=orderId
+  document.getElementById('pmOrderInfo').innerHTML=`<strong>${orderId}</strong> · ${r2.client} · ${r2.project}`
+  document.getElementById('pmTotal').value=moneyNum(r2.total)||''
+  document.getElementById('pmDeposit').value=moneyNum(r2.deposit)||''
+  document.getElementById('pmAnalyst').value=r2.analyst||'Unassigned'
+  document.getElementById('pmDeadline').value=r2.deadline&&r2.deadline!=='TBD'?r2.deadline:''
+  document.getElementById('pmStatus').textContent=''
+  m.style.display='flex'
+}
+function closePriceModal(){
+  const m=document.getElementById('priceModal')
+  if(m)m.style.display='none'
+}
+async function savePriceAndConfirm(){
+  const orderId=document.getElementById('pmOrderId').value
+  const total=parseFloat(document.getElementById('pmTotal').value)||0
+  const deposit=parseFloat(document.getElementById('pmDeposit').value)||0
+  const analyst=document.getElementById('pmAnalyst').value
+  const deadline=document.getElementById('pmDeadline').value
+  const statusEl=document.getElementById('pmStatus')
+  if(total<=0){statusEl.style.color='#D13438';statusEl.textContent='⚠ Please enter a total price greater than 0.';return}
+  statusEl.style.color='var(--sl)';statusEl.textContent='Saving...'
+  const balance=Math.max(0,total-deposit)
+  const newStatus=analyst&&analyst!=='Unassigned'?'Confirmed':'Pending'
+  try{
+    await fbDB.collection('orders').doc(orderId).update({
+      total:String(total), deposit:String(deposit), balance:String(balance),
+      analyst, deadline:deadline||'TBD', status:newStatus
+    })
+    // notify client that price is set and order confirmed
+    const r=sqlData.find(x=>x.id===orderId)
+    if(r&&r.email){
+      await writeNotification(r.email, orderId, '💰',
+        `Price set for your order — ${orderId}`,
+        `Your project has been priced at KES ${total.toLocaleString()}. Deposit: KES ${deposit.toLocaleString()}. Balance: KES ${balance.toLocaleString()}. Analyst: ${analyst}.`,
+        'invoices'
+      )
+    }
+    statusEl.style.color='#107C10'
+    statusEl.textContent='✓ Saved! Client has been notified.'
+    setTimeout(()=>closePriceModal(), 1200)
+  }catch(e){
+    statusEl.style.color='#D13438'
+    statusEl.textContent='⚠ Error: '+e.message
+  }
+}
 function exportProjects(){ exportCSV() }
+
+function generateInvoicePDF(orderId){
+  const r=sqlData.find(x=>x.id===orderId)
+  if(!r){ alert('Order not found.'); return }
+  if(!window.jspdf){ alert('PDF library not loaded — please refresh the page and try again.'); return }
+  if(parseFloat(String(r.total||0).replace(/,/g,''))<=0){
+    alert('Cannot generate invoice — no price has been set for this order yet.\n\nAdmin must set the price first from the All Orders tab.'); return
+  }
+  const { jsPDF } = window.jspdf
+  const doc = new jsPDF({unit:'mm',format:'a4'})
+  const pw=210, ph=297, mg=15
+  const navy=[10,26,61], gold=[245,166,35], white=[255,255,255]
+  const ink=[20,20,30], muted=[100,110,120], light=[243,244,246]
+  const green=[16,124,16], red=[209,52,68]
+  const moneyNum=v=>parseFloat(String(v||0).replace(/,/g,''))||0
+  const moneyFmt=v=>'KES '+Math.round(moneyNum(v)).toLocaleString()
+  const today=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})
+  const isPaid=moneyNum(r.balance)<=0
+
+  // ── HEADER BAND ──────────────────────────────────────────────────
+  doc.setFillColor(...navy)
+  doc.rect(0,0,pw,42,'F')
+  // gold accent bar
+  doc.setFillColor(...gold)
+  doc.rect(0,42,pw,2,'F')
+
+  // Company name
+  doc.setTextColor(...white)
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(20)
+  doc.text('StatVision Consultancy',mg,16)
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(200,210,230)
+  doc.text('Professional Data Analysis & Research Services',mg,23)
+  doc.text('Nairobi, Kenya  ·  hello@statvisionconsultancy.co.ke  ·  +254 748 216 918',mg,29)
+  doc.text('www.statvisionconsultancy.co.ke',mg,35)
+
+  // Document type + reference (top right)
+  doc.setTextColor(...white)
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(18)
+  doc.text('INVOICE', pw-mg, 16, {align:'right'})
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(200,210,230)
+  doc.text('Reference: '+r.id, pw-mg, 23, {align:'right'})
+  doc.text('Date Issued: '+today, pw-mg, 29, {align:'right'})
+  // status pill
+  const statusLabel = isPaid ? 'FULLY PAID' : (r.status||'PENDING').toUpperCase()
+  const [sr,sg,sb] = isPaid ? [16,124,16] : moneyNum(r.balance)>0 ? [209,52,68] : [245,166,35]
+  doc.setFillColor(sr,sg,sb)
+  doc.roundedRect(pw-mg-32, 33, 32, 7, 2, 2, 'F')
+  doc.setTextColor(...white)
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(7)
+  doc.text(statusLabel, pw-mg-16, 37.8, {align:'center'})
+
+  // ── BILLED TO / ANALYST BLOCK ─────────────────────────────────────
+  let y = 52
+  // left card
+  doc.setFillColor(...light)
+  doc.roundedRect(mg, y, 85, 34, 3, 3, 'F')
+  doc.setTextColor(...muted)
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(7.5)
+  doc.text('BILLED TO', mg+4, y+7)
+  doc.setDrawColor(...gold)
+  doc.setLineWidth(0.4)
+  doc.line(mg+4, y+9, mg+40, y+9)
+  doc.setTextColor(...ink)
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(10)
+  doc.text(r.client||'—', mg+4, y+15)
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(...muted)
+  doc.text(r.email||'—', mg+4, y+21)
+  doc.text(r.phone||'—', mg+4, y+27)
+  if(r.org && r.org!=='—') doc.text(r.org, mg+4, y+32)
+
+  // right card — analyst
+  doc.setFillColor(...light)
+  doc.roundedRect(mg+90, y, 85, 34, 3, 3, 'F')
+  doc.setTextColor(...muted)
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(7.5)
+  doc.text('ANALYST ASSIGNED', mg+94, y+7)
+  doc.setDrawColor(...gold)
+  doc.line(mg+94, y+9, mg+94+36, y+9)
+  doc.setTextColor(...ink)
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(10)
+  doc.text(r.analyst||'Unassigned', mg+94, y+15)
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(...muted)
+  doc.text('StatVision Consultancy', mg+94, y+21)
+  doc.text('Nairobi, Kenya', mg+94, y+27)
+  doc.text('Deadline: '+(r.deadline||'TBD'), mg+94, y+32)
+
+  // ── SERVICE TABLE ─────────────────────────────────────────────────
+  y += 42
+  // Table header
+  doc.setFillColor(...navy)
+  doc.roundedRect(mg, y, pw-mg*2, 10, 2, 2, 'F')
+  doc.setTextColor(...white)
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(8)
+  doc.text('DESCRIPTION OF SERVICES', mg+4, y+6.8)
+  doc.text('CATEGORY', mg+88, y+6.8)
+  doc.text('TOOL', mg+118, y+6.8)
+  doc.text('FORMAT', mg+140, y+6.8)
+  doc.text('AMOUNT', pw-mg-4, y+6.8, {align:'right'})
+  y += 10
+
+  // Row
+  doc.setFillColor(250,251,252)
+  doc.rect(mg, y, pw-mg*2, 16, 'F')
+  doc.setDrawColor(220,225,230)
+  doc.setLineWidth(0.3)
+  doc.rect(mg, y, pw-mg*2, 16, 'S')
+  doc.setTextColor(...ink)
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(8.5)
+  const projLines=doc.splitTextToSize(r.project||'Data Analysis Service', 80)
+  doc.text(projLines, mg+4, y+5.5)
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(8)
+  doc.setTextColor(...muted)
+  doc.text(r.service||r.tool||'—', mg+88, y+5.5)
+  doc.text(r.tool||'—', mg+118, y+5.5)
+  doc.text(r.format||'—', mg+140, y+5.5)
+  doc.setTextColor(...ink)
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(9)
+  doc.text(moneyFmt(r.total), pw-mg-4, y+5.5, {align:'right'})
+  y += 18
+
+  // ── PAYMENT SUMMARY ───────────────────────────────────────────────
+  y += 4
+  // Summary box (right aligned)
+  const bx=pw-mg-90, bw=90
+  doc.setFillColor(...light)
+  doc.roundedRect(bx, y, bw, 44, 3, 3, 'F')
+
+  // Service price row
+  doc.setTextColor(...muted)
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(8.5)
+  doc.text('Service Price', bx+6, y+9)
+  doc.setTextColor(...ink)
+  doc.setFont('helvetica','bold')
+  doc.text(moneyFmt(r.total), bx+bw-6, y+9, {align:'right'})
+
+  // Amount paid row
+  doc.setTextColor(...muted)
+  doc.setFont('helvetica','normal')
+  doc.text('Amount Paid', bx+6, y+18)
+  doc.setTextColor(...green)
+  doc.setFont('helvetica','bold')
+  doc.text(moneyFmt(r.deposit), bx+bw-6, y+18, {align:'right'})
+
+  // Divider
+  doc.setDrawColor(210,215,220)
+  doc.setLineWidth(0.4)
+  doc.line(bx+6, y+22, bx+bw-6, y+22)
+
+  // Balance due row — prominent
+  const balNum=moneyNum(r.balance)
+  doc.setFillColor(balNum<=0 ? 240 : 255, balNum<=0 ? 249 : 235, balNum<=0 ? 240 : 235)
+  doc.roundedRect(bx+4, y+25, bw-8, 14, 2, 2, 'F')
+  doc.setTextColor(...muted)
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(8)
+  doc.text('BALANCE DUE', bx+8, y+31)
+  doc.setFontSize(11)
+  doc.setFont('helvetica','bold')
+  doc.setTextColor(balNum<=0 ? 16 : 180, balNum<=0 ? 124 : 30, balNum<=0 ? 16 : 30)
+  doc.text(moneyFmt(r.balance), bx+bw-8, y+33, {align:'right'})
+
+  // ── PAYMENT NOTES (left of summary) ──────────────────────────────
+  doc.setFillColor(...light)
+  doc.roundedRect(mg, y, bx-mg-6, 44, 3, 3, 'F')
+  doc.setTextColor(...muted)
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(7.5)
+  doc.text('PAYMENT INSTRUCTIONS', mg+5, y+8)
+  doc.setDrawColor(...gold)
+  doc.setLineWidth(0.4)
+  doc.line(mg+5, y+10, mg+60, y+10)
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(8)
+  doc.setTextColor(...ink)
+  doc.text('M-Pesa Paybill: 522533', mg+5, y+17)
+  doc.text('Account No: hello@statvisionconsultancy.co.ke', mg+5, y+23)
+  doc.text('Or: Bank Transfer / PayPal on request', mg+5, y+29)
+  doc.setTextColor(...muted)
+  doc.setFontSize(7.5)
+  doc.text('Quote your Order ID ('+r.id+') as the reference.', mg+5, y+36)
+  doc.text('Queries: +254 748 216 918', mg+5, y+41)
+
+  y += 52
+
+  // ── ORDER STATUS STRIP ────────────────────────────────────────────
+  doc.setFillColor(...navy)
+  doc.roundedRect(mg, y, pw-mg*2, 9, 2, 2, 'F')
+  doc.setTextColor(...white)
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(8)
+  doc.text('Order Status: '+(r.status||'Pending')+'   |   Order ID: '+r.id+'   |   Issued: '+today, mg+4, y+5.8)
+
+  y += 18
+
+  // ── OFFICIAL STAMP ────────────────────────────────────────────────
+  // Signature line (left)
+  doc.setDrawColor(180,180,190)
+  doc.setLineWidth(0.5)
+  doc.line(mg, y+18, mg+60, y+18)
+  doc.setTextColor(...muted)
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(8)
+  doc.text('Henry Gitau Michuku', mg, y+24)
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(7.5)
+  doc.text('Chief Executive Officer', mg, y+29)
+  doc.text('StatVision Consultancy', mg, y+34)
+
+  // Circular stamp (right of signature)
+  const cx=mg+100, cy=y+18, rad=20
+  // outer ring
+  doc.setDrawColor(178,34,34)
+  doc.setLineWidth(1.2)
+  doc.circle(cx, cy, rad, 'S')
+  // inner ring
+  doc.setLineWidth(0.5)
+  doc.circle(cx, cy, rad-3, 'S')
+  // star decorations on ring
+  for(let i=0;i<12;i++){
+    const ang=(i/12)*Math.PI*2
+    const rx=(rad-1.5)*Math.cos(ang)+cx
+    const ry=(rad-1.5)*Math.sin(ang)+cy
+    doc.setFillColor(178,34,34)
+    doc.circle(rx,ry,0.5,'F')
+  }
+  // stamp text
+  doc.setTextColor(178,34,34)
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(6)
+  doc.text('STATVISION CONSULTANCY', cx, cy-10, {align:'center'})
+  doc.setFontSize(5.5)
+  doc.text('NAIROBI · KENYA', cx, cy-5.5, {align:'center'})
+  doc.setFontSize(7.5)
+  doc.text('✓', cx, cy+1, {align:'center'})
+  doc.setFontSize(5.5)
+  doc.text('OFFICIALLY APPROVED', cx, cy+5, {align:'center'})
+  doc.setFont('helvetica','normal')
+  doc.text(today, cx, cy+9.5, {align:'center'})
+  // CEO label curved under stamp
+  doc.setFont('helvetica','bold')
+  doc.setFontSize(5.8)
+  doc.text('CEO: HENRY GITAU MICHUKU', cx, cy+14.5, {align:'center'})
+
+  // Terms note (right of stamp)
+  doc.setTextColor(...muted)
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(7.5)
+  const terms=[
+    'Payment Terms: 50% deposit upon order confirmation.',
+    'Balance due upon delivery of final deliverable.',
+    'All prices are in Kenya Shillings (KES).',
+    'This invoice is valid for 30 days from date of issue.'
+  ]
+  terms.forEach((t,i)=>doc.text(t, mg+130, y+10+i*5))
+
+  // ── FOOTER ────────────────────────────────────────────────────────
+  doc.setFillColor(...navy)
+  doc.rect(0, ph-18, pw, 18, 'F')
+  doc.setTextColor(200,210,230)
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(7.5)
+  doc.text('StatVision Consultancy  ·  Nairobi, Kenya  ·  hello@statvisionconsultancy.co.ke  ·  +254 748 216 918', pw/2, ph-10, {align:'center'})
+  doc.setTextColor(150,160,180)
+  doc.setFontSize(6.5)
+  doc.text('This is an official system-generated document. For disputes or queries please contact us within 7 days of receipt.', pw/2, ph-5, {align:'center'})
+
+  doc.save(`StatVision-Invoice-${r.id}.pdf`)
+}
 
 function renderAdminOverview(){
   const active=document.getElementById('adKpiActive')
@@ -427,7 +924,7 @@ function renderSQL(){
   }).join('')
   const rw=document.getElementById('reportTableWrap')
   if(rw)rw.innerHTML=`<table><thead><tr><th>Order ID</th><th>Client</th><th>Email</th><th>Phone</th><th>Organisation</th><th>Project</th><th>Service</th><th>Tool</th><th>Format</th><th>Analyst</th><th>Deadline</th><th>Total</th><th>Deposit</th><th>Balance</th><th>Status</th></tr></thead><tbody>`+sqlData.map(r=>`<tr><td>${r.id}</td><td>${r.client}</td><td>${r.email}</td><td>${r.phone}</td><td>${r.org}</td><td>${r.project}</td><td>${r.service}</td><td>${r.tool}</td><td>${r.format}</td><td>${r.analyst}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td>KES ${r.deposit}</td><td>KES ${r.balance}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td></tr>`).join('')+`</tbody></table>`
-  const cu=currentClient();if(cu){renderMyOrders(cu.email);pbiRenderClientPortal()}
+  const cu=currentClient();if(cu){renderMyOrders(cu.email);pbiRenderClientPortal();renderClientDocs()}
   renderAnalystUI()
   renderProjectsTable()
   renderAdminOverview()
@@ -458,8 +955,133 @@ function anShowOrderFiles(){
   const sel=document.getElementById('anUploadOrder'), box=document.getElementById('anClientFiles')
   if(!sel||!box)return
   const files=getFiles(sel.value)
-  box.innerHTML=downloadLinksHTML(files.client)
+  // client files
+  let html = downloadLinksHTML(files.client)
+  // also show previously uploaded analyst files with notes
+  if(files.analyst && files.analyst.length){
+    html += `<div style="margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--br)"><span style="font-size:.73rem;color:var(--sl);font-weight:600">Previously uploaded by analyst:</span>`
+    files.analyst.forEach(f=>{
+      html += `<div style="margin:.3rem 0"><a href="${f.url}" target="_blank" rel="noopener" style="font-size:.78rem;color:var(--b2)">📎 ${f.name}</a>`
+      if(f.delivType) html += ` <span style="font-size:.71rem;color:var(--sl);background:var(--bl);padding:.1rem .4rem;border-radius:4px">${f.delivType}</span>`
+      if(f.notes) html += `<div style="font-size:.72rem;color:var(--sl);margin-left:.6rem;font-style:italic">"${f.notes}"</div>`
+      html += `</div>`
+    })
+    html += `</div>`
+  }
+  box.innerHTML = html
 }
+// ===== NOTIFICATIONS (Firestore-backed, real-time) =====
+async function writeNotification(clientEmail, orderId, icon, title, body, tab){
+  if(!clientEmail||clientEmail==='—') return
+  // find the client's uid from users collection by email
+  try{
+    const snap = await fbDB.collection('users').where('email','==',clientEmail.toLowerCase()).where('role','==','client').limit(1).get()
+    if(snap.empty) return
+    const uid = snap.docs[0].id
+    await fbDB.collection('notifications').add({
+      uid, orderId, icon, title, body, tab,
+      read: false,
+      ts: Date.now()
+    })
+  }catch(e){ console.warn('writeNotification failed:',e.message) }
+}
+
+// Live listener for the current client's notifications
+let _notifUnsub = null
+function subscribeNotifications(uid){
+  if(_notifUnsub) _notifUnsub()
+  _notifUnsub = fbDB.collection('notifications')
+    .where('uid','==',uid)
+    .orderBy('ts','desc')
+    .limit(30)
+    .onSnapshot(snap=>{
+      const notifs = snap.docs.map(d=>({id:d.id,...d.data()}))
+      renderClientNotifs(notifs)
+      // badge count
+      const unread = notifs.filter(n=>!n.read).length
+      const badge = document.getElementById('cNotifBadge')
+      if(badge){ badge.textContent=unread||''; badge.style.display=unread?'inline':'none' }
+    }, err=>console.warn('Notif listener:',err.message))
+}
+function renderClientNotifs(notifs){
+  const wrap = document.getElementById('ctab-notifs-list')
+  if(!wrap) return
+  if(!notifs.length){
+    wrap.innerHTML=`<div style="padding:1.4rem;text-align:center;color:var(--sl);font-size:.85rem">No notifications yet.</div>`
+    return
+  }
+  wrap.innerHTML = notifs.map(n=>{
+    const ago = timeAgo(n.ts)
+    const bg = n.read ? '' : 'background:#FFF8E1;'
+    return `<div style="padding:.9rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.9rem;${bg}" id="nitem-${n.id}">
+      <span style="font-size:1.2rem">${n.icon||'🔔'}</span>
+      <div style="flex:1">
+        <strong style="font-size:.85rem">${n.title}</strong>
+        <div style="font-size:.76rem;color:var(--sl)">${n.body} · ${ago}</div>
+      </div>
+      ${n.tab?`<button class="db1 dba" onclick="markRead('${n.id}');cTab('${n.tab}',null)">View</button>`:''}
+    </div>`
+  }).join('')
+}
+function markRead(notifId){
+  fbDB.collection('notifications').doc(notifId).update({read:true}).catch(()=>{})
+}
+function markAllNotifsRead(){
+  const cu=currentClient(); if(!cu) return
+  fbDB.collection('notifications').where('uid','==',cu.uid).where('read','==',false).get().then(snap=>{
+    const batch=fbDB.batch()
+    snap.docs.forEach(d=>batch.update(d.ref,{read:true}))
+    batch.commit()
+  })
+}
+function timeAgo(ts){
+  if(!ts) return '—'
+  const diff = Date.now()-ts
+  const m = Math.floor(diff/60000)
+  if(m<2) return 'just now'
+  if(m<60) return m+' min ago'
+  const h = Math.floor(m/60)
+  if(h<24) return h+' hr ago'
+  const d = Math.floor(h/24)
+  return d===1?'yesterday':d+' days ago'
+}
+
+// ===== LIVE CLIENT DOCUMENTS TAB =====
+function renderClientDocs(){
+  const cu=currentClient()
+  const wrap=document.getElementById('clientDocsBody')
+  if(!wrap) return
+  if(!cu){ wrap.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--sl);padding:1.4rem">Log in to see your documents.</td></tr>'; return }
+  const mine=sqlData.filter(r=>r.email && r.email.toLowerCase()===cu.email.toLowerCase())
+  const rows=[]
+  mine.forEach(r=>{
+    const files=getFiles(r.id)
+    ;(files.client||[]).forEach(f=>{
+      rows.push({f,orderId:r.id,by:'Client',type:'Uploaded by you',cls:'dbb'})
+    })
+    ;(files.analyst||[]).forEach(f=>{
+      rows.push({f,orderId:r.id,by:'Analyst',type:f.delivType||'Deliverable',cls:'dba'})
+    })
+  })
+  if(!rows.length){
+    wrap.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--sl);padding:1.4rem">No files yet — they will appear here once uploaded.</td></tr>'
+    return
+  }
+  wrap.innerHTML=rows.map(({f,orderId,by,type,cls})=>{
+    const icon = f.name.endsWith('.pdf')?'📄':f.name.endsWith('.docx')||f.name.endsWith('.doc')?'📝':f.name.endsWith('.ipynb')||f.name.endsWith('.sav')?'📊':'📎'
+    const size = f.size ? (f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB') : '—'
+    return `<tr>
+      <td>${icon} ${f.name}</td>
+      <td><strong>${orderId}</strong></td>
+      <td>${type}</td>
+      <td>${by}</td>
+      <td>${f.uploadedAt ? new Date(f.uploadedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—'}</td>
+      <td>${size}</td>
+      <td><a href="${f.url}" target="_blank" rel="noopener"><button class="db1 ${cls}">⬇ Open</button></a></td>
+    </tr>`
+  }).join('')
+}
+
 async function uploadDeliverable(){
   const sel=document.getElementById('anUploadOrder')
   const orderId=sel?sel.value:null
@@ -468,26 +1090,44 @@ async function uploadDeliverable(){
   if(!orderId){statusEl.style.color='#D13438';statusEl.textContent='⚠ Select an order first.';return}
   if(!fileInput||!fileInput.files.length){statusEl.style.color='#D13438';statusEl.textContent='⚠ Choose at least one file to upload.';return}
   statusEl.style.color='var(--sl)';statusEl.textContent='Uploading...'
-  const newFiles=await filesToDataURLs(fileInput.files)
-  const files=getFiles(orderId)
-  files.analyst=files.analyst.concat(newFiles)
-  setFiles(orderId,files)
-  const r=sqlData.find(x=>x.id===orderId)
-  if(r){
+  try{
     const type=document.getElementById('anDelivType').value
-    r.status = type==='Final Deliverable' ? 'Completed' : 'Draft Review'
+    const notes=(document.getElementById('anUploadNotes').value||'').trim()
+    const newFiles=await uploadFilesToStorage(orderId,'analyst',fileInput.files)
+    // tag each file with meta
+    newFiles.forEach(f=>{ f.delivType=type; f.uploadedAt=Date.now(); f.notes=notes })
+    const files=getFiles(orderId)
+    const updatedAnalystFiles=files.analyst.concat(newFiles)
+    const newStatus = type==='Final Deliverable' ? 'Completed' : 'Draft Review'
+    await fbDB.collection('orders').doc(orderId).update({'files.analyst':updatedAnalystFiles,status:newStatus})
+    // write a real notification to the client
+    const order=sqlData.find(x=>x.id===orderId)
+    const analyst=currentStaff()
+    const analystName=analyst?analyst.name:'Your analyst'
+    const clientEmail=order?order.email:null
+    const notifTitle = type==='Final Deliverable'
+      ? `Final deliverable ready — ${orderId}`
+      : `${type} uploaded — ${orderId}`
+    const notifBody = notes
+      ? `${analystName}: "${notes.slice(0,80)}${notes.length>80?'…':''}"`
+      : `${analystName} uploaded ${newFiles.length} file${newFiles.length>1?'s':''} for ${order?order.project:'your project'}.`
+    const icon = type==='Final Deliverable' ? '✅' : '📤'
+    await writeNotification(clientEmail, orderId, icon, notifTitle, notifBody, 'docs')
+    statusEl.style.color='#107C10'
+    statusEl.textContent='✓ Uploaded! Client has been notified and can now download it from their dashboard.'
+    fileInput.value='';document.getElementById('anFn').textContent=''
+    document.getElementById('anUploadNotes').value=''
+    anShowOrderFiles()
+  }catch(e){
+    statusEl.style.color='#D13438'
+    statusEl.textContent='⚠ Upload failed: '+e.message
   }
-  renderSQL()
-  statusEl.style.color='#107C10'
-  statusEl.textContent='✓ Uploaded! Client has been notified and can now download it from their dashboard.'
-  fileInput.value='';document.getElementById('anFn').textContent=''
-  document.getElementById('anUploadNotes').value=''
-  anShowOrderFiles()
 }
 function addRow(){
   const n=sqlData.length+1
-  sqlData.push({id:`DB-2025-${n.toString().padStart(3,'0')}`,client:'New Client',email:'client@email.com',phone:'+254 7XX XXX XXX',org:'Organisation',project:'New Project',service:'Quantitative',tool:'SPSS',format:'APA 7th',analyst:'Unassigned',deadline:'TBD',total:'0',deposit:'0',balance:'0',status:'Pending'})
-  renderSQL();alert('New order row added!')
+  const id=`DB-2025-${n.toString().padStart(3,'0')}`
+  fbDB.collection('orders').doc(id).set({client:'New Client',email:'client@email.com',phone:'+254 7XX XXX XXX',org:'Organisation',project:'New Project',service:'Quantitative',tool:'SPSS',format:'APA 7th',analyst:'Unassigned',deadline:'TBD',total:'0',deposit:'0',balance:'0',status:'Pending',files:{client:[],analyst:[]}})
+  alert('New order row added!')
 }
 function exportCSV(){
   const h=['Order ID','Client','Email','Phone','Organisation','Project','Service','Tool','Format','Analyst','Deadline','Total','Deposit','Balance','Status']
@@ -568,10 +1208,19 @@ async function submitOrder(){
   statusEl.style.color='var(--sl)';statusEl.textContent='Submitting your project...'
   btn.disabled=true
 
-  // read any files the client attached, before sending
   const fileInput=document.getElementById('mfile')
+  const n=sqlData.length+1
+  const newId=`DB-2025-${n.toString().padStart(3,'0')}`
+
   let clientFiles=[]
-  try{ if(fileInput&&fileInput.files.length) clientFiles=await filesToDataURLs(fileInput.files) }catch(e){}
+  try{
+    if(fileInput&&fileInput.files.length){
+      statusEl.textContent='Uploading your files...'
+      clientFiles=await uploadFilesToStorage(newId,'client',fileInput.files)
+    }
+  }catch(e){ console.warn('File upload failed:',e.message) }
+
+  statusEl.textContent='Submitting your project...'
 
   fetch(FORMSPREE_ENDPOINT,{
     method:'POST',
@@ -585,18 +1234,15 @@ async function submitOrder(){
   }).then(res=>{
     if(!res.ok) throw new Error('Submission failed')
     return res.json()
-  }).then(()=>{
-    // add to live on-site tracker (Admin → Project Tracker) so it shows up immediately
-    const n=sqlData.length+1
-    const newId=`DB-2025-${n.toString().padStart(3,'0')}`
-    sqlData.push({
-      id:newId,client:data.name,email:data.email,phone:data.phone,
+  }).then(async ()=>{
+    // write the real order straight to Firestore — visible instantly to Admin/Analyst/Client everywhere
+    await fbDB.collection('orders').doc(newId).set({
+      client:data.name,email:data.email,phone:data.phone,
       org:data.org,project:data.description?data.description.slice(0,40)+'…':data.service,service:data.datatype||data.service,
       tool:data.tool||'TBD',format:data.format||'TBD',analyst:'Unassigned',deadline:data.final_deadline||'TBD',
-      total:'0',deposit:'0',balance:'0',status:'Pending'
+      total:'0',deposit:'0',balance:'0',status:'Pending',
+      files:{client:clientFiles,analyst:[]}
     })
-    setFiles(newId,{client:clientFiles,analyst:[]})
-    renderSQL()
     statusEl.style.color='#107C10'
     statusEl.textContent='✓ Submitted! Check your email for confirmation.'
     setTimeout(()=>{
