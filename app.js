@@ -111,9 +111,9 @@ function clientLogout(){
 // ===== STAFF ACCOUNTS (Admin + Analysts — created via seedStaffOnce(), see chat instructions) =====
 async function seedStaffOnce(){
   const staff=[
-    {email:'henry@statvisionconsultancy.co.ke',pass:'admin123',name:'Henry Gitau Michuku',role:'admin'},
-    {email:'simon@statvisionconsultancy.co.ke',pass:'analyst123',name:'Simon Macharia',role:'analyst'},
-    {email:'joseph@statvisionconsultancy.co.ke',pass:'analyst123',name:'Joseph Machuki',role:'analyst'}
+    {email:'henry@statvisionconsultancy.co.ke',pass:'StatAdmin@2025',name:'Henry Gitau Michuku',role:'admin'},
+    {email:'simon@statvisionconsultancy.co.ke',pass:'StatSimon@2025',name:'Simon Macharia',role:'analyst'},
+    {email:'joseph@statvisionconsultancy.co.ke',pass:'StatJoseph@2025',name:'Joseph Machuki',role:'analyst'}
   ]
   for(const s of staff){
     try{
@@ -209,13 +209,23 @@ function renderMyInvoices(mine){
   const wrap=document.getElementById('myInvoicesBody')
   if(!wrap)return
   if(!mine.length){
-    wrap.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--sl);padding:1.4rem">No invoices yet — they'll appear here once you place an order.</td></tr>`
+    wrap.innerHTML=`<tr><td colspan="9" style="text-align:center;color:var(--sl);padding:1.4rem">No invoices yet — they'll appear here once you place an order.</td></tr>`
     return
   }
   wrap.innerHTML=mine.map(r=>{
     const bal=moneyNum(r.balance)
+    const dep=moneyNum(r.deposit)
+    const tot=moneyNum(r.total)
     const balColor=bal<=0?'color:#107C10':'color:#D13438'
     const statusLabel=bal<=0?'<span class="badge b-dn">Fully Paid</span>':`<span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span>`
+    const priced=tot>0
+    // Proforma: available once price is set. Standard: available once deposit paid
+    const proBtn = priced
+      ? `<button class="db1" style="background:#1565C0;color:#fff;border:none;white-space:nowrap;padding:.32rem .7rem;border-radius:6px;font-size:.74rem;cursor:pointer" onclick="generateProformaInvoice('${r.id}')">📋 Proforma</button>`
+      : `<button class="db1 dbb" style="opacity:.4;cursor:not-allowed;white-space:nowrap" disabled>📋 Proforma</button>`
+    const stdBtn = dep>0
+      ? `<button class="db1 dba" style="white-space:nowrap;padding:.32rem .7rem;border-radius:6px;font-size:.74rem" onclick="generateStandardInvoice('${r.id}')">🧾 Invoice</button>`
+      : `<button class="db1 dbb" style="opacity:.4;cursor:not-allowed;white-space:nowrap" disabled title="Available after payment">🧾 Invoice</button>`
     return `<tr>
       <td><strong>${r.id}</strong></td>
       <td style="max-width:160px;white-space:normal">${r.project}</td>
@@ -225,7 +235,7 @@ function renderMyInvoices(mine){
       <td style="color:#107C10;font-weight:600">KES ${r.deposit}</td>
       <td style="${balColor};font-weight:700">KES ${r.balance}</td>
       <td>${statusLabel}</td>
-      <td><button class="db1 dba" style="white-space:nowrap" onclick="generateInvoicePDF('${r.id}')">⬇ PDF Invoice</button></td>
+      <td style="display:flex;gap:.3rem;flex-wrap:wrap">${proBtn}${stdBtn}</td>
     </tr>`
   }).join('')
 }
@@ -561,19 +571,16 @@ async function savePriceAndConfirm(){
 }
 function exportProjects(){ exportCSV() }
 
-function generateInvoicePDF(orderId){
-  const r=sqlData.find(x=>x.id===orderId)
-  if(!r){ alert('Order not found.'); return }
-  if(!window.jspdf){ alert('PDF library not loaded — please refresh the page and try again.'); return }
-  if(parseFloat(String(r.total||0).replace(/,/g,''))<=0){
-    alert('Cannot generate invoice — no price has been set for this order yet.\n\nAdmin must set the price first from the All Orders tab.'); return
-  }
+// ── SHARED INVOICE BUILDER ───────────────────────────────────────────
+function buildInvoiceDoc(r, type){
+  // type = 'proforma' | 'standard'
   const { jsPDF } = window.jspdf
   const doc = new jsPDF({unit:'mm',format:'a4'})
   const pw=210, ph=297, mg=15
   const navy=[10,26,61], gold=[245,166,35], white=[255,255,255]
   const ink=[20,20,30], muted=[100,110,120], light=[243,244,246]
-  const green=[16,124,16], red=[209,52,68]
+  const blue=[21,101,192], red=[209,52,68], green=[16,124,16]
+  const isProforma = type==='proforma'
   const moneyNum=v=>parseFloat(String(v||0).replace(/,/g,''))||0
   const moneyFmt=v=>'KES '+Math.round(moneyNum(v)).toLocaleString()
   const today=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})
@@ -582,11 +589,9 @@ function generateInvoicePDF(orderId){
   // ── HEADER BAND ──────────────────────────────────────────────────
   doc.setFillColor(...navy)
   doc.rect(0,0,pw,42,'F')
-  // gold accent bar
   doc.setFillColor(...gold)
   doc.rect(0,42,pw,2,'F')
 
-  // Company name
   doc.setTextColor(...white)
   doc.setFont('helvetica','bold')
   doc.setFontSize(20)
@@ -598,256 +603,320 @@ function generateInvoicePDF(orderId){
   doc.text('Nairobi, Kenya  ·  hello@statvisionconsultancy.co.ke  ·  +254 748 216 918',mg,29)
   doc.text('www.statvisionconsultancy.co.ke',mg,35)
 
-  // Document type + reference (top right)
+  // Document type top right
   doc.setTextColor(...white)
   doc.setFont('helvetica','bold')
-  doc.setFontSize(18)
-  doc.text('INVOICE', pw-mg, 16, {align:'right'})
+  doc.setFontSize(isProforma?14:18)
+  doc.text(isProforma?'PROFORMA INVOICE':'TAX INVOICE', pw-mg, 14, {align:'right'})
   doc.setFont('helvetica','normal')
-  doc.setFontSize(8.5)
+  doc.setFontSize(8)
   doc.setTextColor(200,210,230)
-  doc.text('Reference: '+r.id, pw-mg, 23, {align:'right'})
-  doc.text('Date Issued: '+today, pw-mg, 29, {align:'right'})
-  // status pill
-  const statusLabel = isPaid ? 'FULLY PAID' : (r.status||'PENDING').toUpperCase()
-  const [sr,sg,sb] = isPaid ? [16,124,16] : moneyNum(r.balance)>0 ? [209,52,68] : [245,166,35]
-  doc.setFillColor(sr,sg,sb)
-  doc.roundedRect(pw-mg-32, 33, 32, 7, 2, 2, 'F')
+  if(isProforma) doc.text('(Quote — not a demand for payment)', pw-mg, 19, {align:'right'})
+  doc.text('Reference: '+r.id, pw-mg, isProforma?24:23, {align:'right'})
+  doc.text('Date Issued: '+today, pw-mg, isProforma?29:28, {align:'right'})
+
+  // Status pill
+  const pillLabel = isProforma ? 'QUOTATION' : (isPaid?'FULLY PAID':'PAYMENT DUE')
+  const [pr,pg,pb] = isProforma ? [21,101,192] : isPaid ? [16,124,16] : [209,52,68]
+  doc.setFillColor(pr,pg,pb)
+  doc.roundedRect(pw-mg-32,33,32,7,2,2,'F')
   doc.setTextColor(...white)
   doc.setFont('helvetica','bold')
   doc.setFontSize(7)
-  doc.text(statusLabel, pw-mg-16, 37.8, {align:'center'})
+  doc.text(pillLabel, pw-mg-16, 37.8, {align:'center'})
 
-  // ── BILLED TO / ANALYST BLOCK ─────────────────────────────────────
-  let y = 52
-  // left card
+  // ── PROFORMA NOTICE BAND ─────────────────────────────────────────
+  if(isProforma){
+    doc.setFillColor(232,240,254)
+    doc.rect(mg,46,pw-mg*2,9,'F')
+    doc.setDrawColor(...blue)
+    doc.setLineWidth(0.5)
+    doc.rect(mg,46,pw-mg*2,9,'S')
+    doc.setTextColor(...blue)
+    doc.setFont('helvetica','bold')
+    doc.setFontSize(7.5)
+    doc.text('⚠  PROFORMA INVOICE — This is a quotation only. Payment is not due until a formal Tax Invoice is issued after deposit confirmation.', mg+3, 51.5)
+  }
+
+  // ── BILLED TO / ANALYST ──────────────────────────────────────────
+  let y = isProforma ? 60 : 52
   doc.setFillColor(...light)
-  doc.roundedRect(mg, y, 85, 34, 3, 3, 'F')
+  doc.roundedRect(mg,y,85,34,3,3,'F')
   doc.setTextColor(...muted)
   doc.setFont('helvetica','bold')
   doc.setFontSize(7.5)
-  doc.text('BILLED TO', mg+4, y+7)
+  doc.text('BILLED TO',mg+4,y+7)
   doc.setDrawColor(...gold)
   doc.setLineWidth(0.4)
-  doc.line(mg+4, y+9, mg+40, y+9)
+  doc.line(mg+4,y+9,mg+40,y+9)
   doc.setTextColor(...ink)
   doc.setFont('helvetica','bold')
   doc.setFontSize(10)
-  doc.text(r.client||'—', mg+4, y+15)
+  doc.text(r.client||'—',mg+4,y+15)
   doc.setFont('helvetica','normal')
   doc.setFontSize(8.5)
   doc.setTextColor(...muted)
-  doc.text(r.email||'—', mg+4, y+21)
-  doc.text(r.phone||'—', mg+4, y+27)
-  if(r.org && r.org!=='—') doc.text(r.org, mg+4, y+32)
+  doc.text(r.email||'—',mg+4,y+21)
+  doc.text(r.phone||'—',mg+4,y+27)
+  if(r.org&&r.org!=='—') doc.text(r.org,mg+4,y+32)
 
-  // right card — analyst
   doc.setFillColor(...light)
-  doc.roundedRect(mg+90, y, 85, 34, 3, 3, 'F')
+  doc.roundedRect(mg+90,y,85,34,3,3,'F')
   doc.setTextColor(...muted)
   doc.setFont('helvetica','bold')
   doc.setFontSize(7.5)
-  doc.text('ANALYST ASSIGNED', mg+94, y+7)
+  doc.text('ANALYST ASSIGNED',mg+94,y+7)
   doc.setDrawColor(...gold)
-  doc.line(mg+94, y+9, mg+94+36, y+9)
+  doc.line(mg+94,y+9,mg+94+36,y+9)
   doc.setTextColor(...ink)
   doc.setFont('helvetica','bold')
   doc.setFontSize(10)
-  doc.text(r.analyst||'Unassigned', mg+94, y+15)
+  doc.text(r.analyst||'Unassigned',mg+94,y+15)
   doc.setFont('helvetica','normal')
   doc.setFontSize(8.5)
   doc.setTextColor(...muted)
-  doc.text('StatVision Consultancy', mg+94, y+21)
-  doc.text('Nairobi, Kenya', mg+94, y+27)
-  doc.text('Deadline: '+(r.deadline||'TBD'), mg+94, y+32)
+  doc.text('StatVision Consultancy',mg+94,y+21)
+  doc.text('Nairobi, Kenya',mg+94,y+27)
+  doc.text('Deadline: '+(r.deadline||'TBD'),mg+94,y+32)
 
-  // ── SERVICE TABLE ─────────────────────────────────────────────────
-  y += 42
-  // Table header
+  // ── SERVICE TABLE ────────────────────────────────────────────────
+  y+=42
   doc.setFillColor(...navy)
-  doc.roundedRect(mg, y, pw-mg*2, 10, 2, 2, 'F')
+  doc.roundedRect(mg,y,pw-mg*2,10,2,2,'F')
   doc.setTextColor(...white)
   doc.setFont('helvetica','bold')
   doc.setFontSize(8)
-  doc.text('DESCRIPTION OF SERVICES', mg+4, y+6.8)
-  doc.text('CATEGORY', mg+88, y+6.8)
-  doc.text('TOOL', mg+118, y+6.8)
-  doc.text('FORMAT', mg+140, y+6.8)
-  doc.text('AMOUNT', pw-mg-4, y+6.8, {align:'right'})
-  y += 10
-
-  // Row
+  doc.text('DESCRIPTION OF SERVICES',mg+4,y+6.8)
+  doc.text('CATEGORY',mg+88,y+6.8)
+  doc.text('TOOL',mg+120,y+6.8)
+  doc.text('AMOUNT',pw-mg-4,y+6.8,{align:'right'})
+  y+=10
   doc.setFillColor(250,251,252)
-  doc.rect(mg, y, pw-mg*2, 16, 'F')
+  doc.rect(mg,y,pw-mg*2,16,'F')
   doc.setDrawColor(220,225,230)
   doc.setLineWidth(0.3)
-  doc.rect(mg, y, pw-mg*2, 16, 'S')
+  doc.rect(mg,y,pw-mg*2,16,'S')
   doc.setTextColor(...ink)
   doc.setFont('helvetica','bold')
   doc.setFontSize(8.5)
-  const projLines=doc.splitTextToSize(r.project||'Data Analysis Service', 80)
-  doc.text(projLines, mg+4, y+5.5)
+  const projLines=doc.splitTextToSize(r.project||'Data Analysis Service',80)
+  doc.text(projLines,mg+4,y+5.5)
   doc.setFont('helvetica','normal')
   doc.setFontSize(8)
   doc.setTextColor(...muted)
-  doc.text(r.service||r.tool||'—', mg+88, y+5.5)
-  doc.text(r.tool||'—', mg+118, y+5.5)
-  doc.text(r.format||'—', mg+140, y+5.5)
+  doc.text(r.service||'—',mg+88,y+5.5)
+  doc.text(r.tool||'—',mg+120,y+5.5)
   doc.setTextColor(...ink)
   doc.setFont('helvetica','bold')
   doc.setFontSize(9)
-  doc.text(moneyFmt(r.total), pw-mg-4, y+5.5, {align:'right'})
-  y += 18
+  doc.text(moneyFmt(r.total),pw-mg-4,y+5.5,{align:'right'})
+  y+=18
 
-  // ── PAYMENT SUMMARY ───────────────────────────────────────────────
-  y += 4
-  // Summary box (right aligned)
+  // ── PAYMENT SUMMARY ──────────────────────────────────────────────
+  y+=4
   const bx=pw-mg-90, bw=90
   doc.setFillColor(...light)
-  doc.roundedRect(bx, y, bw, 44, 3, 3, 'F')
+  doc.roundedRect(bx,y,bw,isProforma?36:44,3,3,'F')
 
-  // Service price row
   doc.setTextColor(...muted)
   doc.setFont('helvetica','normal')
   doc.setFontSize(8.5)
-  doc.text('Service Price', bx+6, y+9)
+  doc.text('Service Price',bx+6,y+9)
   doc.setTextColor(...ink)
   doc.setFont('helvetica','bold')
-  doc.text(moneyFmt(r.total), bx+bw-6, y+9, {align:'right'})
+  doc.text(moneyFmt(r.total),bx+bw-6,y+9,{align:'right'})
 
-  // Amount paid row
-  doc.setTextColor(...muted)
-  doc.setFont('helvetica','normal')
-  doc.text('Amount Paid', bx+6, y+18)
-  doc.setTextColor(...green)
-  doc.setFont('helvetica','bold')
-  doc.text(moneyFmt(r.deposit), bx+bw-6, y+18, {align:'right'})
+  if(isProforma){
+    // Proforma shows required deposit
+    const reqDep=Math.round(moneyNum(r.total)*0.5)
+    doc.setTextColor(...muted)
+    doc.setFont('helvetica','normal')
+    doc.text('Required Deposit (50%)',bx+6,y+18)
+    doc.setTextColor(...blue)
+    doc.setFont('helvetica','bold')
+    doc.text('KES '+reqDep.toLocaleString(),bx+bw-6,y+18,{align:'right'})
+    doc.setDrawColor(210,215,220)
+    doc.setLineWidth(0.4)
+    doc.line(bx+6,y+21,bx+bw-6,y+21)
+    doc.setFillColor(232,240,254)
+    doc.roundedRect(bx+4,y+24,bw-8,10,2,2,'F')
+    doc.setTextColor(...blue)
+    doc.setFont('helvetica','bold')
+    doc.setFontSize(9)
+    doc.text('PAY TO CONFIRM',bx+bw/2,y+30,{align:'center'})
+  } else {
+    // Standard shows deposit paid and balance
+    doc.setTextColor(...muted)
+    doc.setFont('helvetica','normal')
+    doc.text('Amount Paid',bx+6,y+18)
+    doc.setTextColor(...green)
+    doc.setFont('helvetica','bold')
+    doc.text(moneyFmt(r.deposit),bx+bw-6,y+18,{align:'right'})
+    doc.setDrawColor(210,215,220)
+    doc.setLineWidth(0.4)
+    doc.line(bx+6,y+22,bx+bw-6,y+22)
+    const balNum=moneyNum(r.balance)
+    doc.setFillColor(balNum<=0?240:255,balNum<=0?249:235,balNum<=0?240:235)
+    doc.roundedRect(bx+4,y+25,bw-8,14,2,2,'F')
+    doc.setTextColor(...muted)
+    doc.setFont('helvetica','normal')
+    doc.setFontSize(8)
+    doc.text('BALANCE DUE',bx+8,y+31)
+    doc.setFontSize(11)
+    doc.setFont('helvetica','bold')
+    doc.setTextColor(balNum<=0?16:180,balNum<=0?124:30,balNum<=0?16:30)
+    doc.text(moneyFmt(r.balance),bx+bw-8,y+33,{align:'right'})
+  }
 
-  // Divider
-  doc.setDrawColor(210,215,220)
-  doc.setLineWidth(0.4)
-  doc.line(bx+6, y+22, bx+bw-6, y+22)
-
-  // Balance due row — prominent
-  const balNum=moneyNum(r.balance)
-  doc.setFillColor(balNum<=0 ? 240 : 255, balNum<=0 ? 249 : 235, balNum<=0 ? 240 : 235)
-  doc.roundedRect(bx+4, y+25, bw-8, 14, 2, 2, 'F')
-  doc.setTextColor(...muted)
-  doc.setFont('helvetica','normal')
-  doc.setFontSize(8)
-  doc.text('BALANCE DUE', bx+8, y+31)
-  doc.setFontSize(11)
-  doc.setFont('helvetica','bold')
-  doc.setTextColor(balNum<=0 ? 16 : 180, balNum<=0 ? 124 : 30, balNum<=0 ? 16 : 30)
-  doc.text(moneyFmt(r.balance), bx+bw-8, y+33, {align:'right'})
-
-  // ── PAYMENT NOTES (left of summary) ──────────────────────────────
+  // Payment instructions (left of summary)
   doc.setFillColor(...light)
-  doc.roundedRect(mg, y, bx-mg-6, 44, 3, 3, 'F')
+  doc.roundedRect(mg,y,bx-mg-6,isProforma?36:44,3,3,'F')
   doc.setTextColor(...muted)
   doc.setFont('helvetica','bold')
   doc.setFontSize(7.5)
-  doc.text('PAYMENT INSTRUCTIONS', mg+5, y+8)
+  doc.text('PAYMENT INSTRUCTIONS',mg+5,y+8)
   doc.setDrawColor(...gold)
   doc.setLineWidth(0.4)
-  doc.line(mg+5, y+10, mg+60, y+10)
+  doc.line(mg+5,y+10,mg+60,y+10)
   doc.setFont('helvetica','normal')
   doc.setFontSize(8)
   doc.setTextColor(...ink)
-  doc.text('M-Pesa Paybill: 522533', mg+5, y+17)
-  doc.text('Account No: hello@statvisionconsultancy.co.ke', mg+5, y+23)
-  doc.text('Or: Bank Transfer / PayPal on request', mg+5, y+29)
+  doc.text('M-Pesa Paybill: 522533',mg+5,y+17)
+  doc.text('Account No: hello@statvisionconsultancy.co.ke',mg+5,y+23)
+  doc.text('Or: Bank Transfer / PayPal on request',mg+5,y+29)
   doc.setTextColor(...muted)
   doc.setFontSize(7.5)
-  doc.text('Quote your Order ID ('+r.id+') as the reference.', mg+5, y+36)
-  doc.text('Queries: +254 748 216 918', mg+5, y+41)
+  doc.text('Quote Order ID ('+r.id+') as reference.',mg+5,y+36)
 
-  y += 52
+  y += isProforma ? 44 : 52
 
   // ── ORDER STATUS STRIP ────────────────────────────────────────────
   doc.setFillColor(...navy)
-  doc.roundedRect(mg, y, pw-mg*2, 9, 2, 2, 'F')
+  doc.roundedRect(mg,y,pw-mg*2,9,2,2,'F')
   doc.setTextColor(...white)
   doc.setFont('helvetica','normal')
   doc.setFontSize(8)
   doc.text('Order Status: '+(r.status||'Pending')+'   |   Order ID: '+r.id+'   |   Issued: '+today, mg+4, y+5.8)
+  y+=18
 
-  y += 18
+  // ── SIGNATURE (left) ─────────────────────────────────────────────
+  // Draw Henry's signature as SVG path approximation using lines
+  // Signature is a stylised "H" with flourishes — drawn as bezier curves
+  const sx=mg, sy=y
+  doc.setDrawColor(0,0,180) // blue ink
+  doc.setLineWidth(0.7)
+  // Left vertical stroke of H
+  doc.lines([[0,14]],sx+2,sy+2,null,'S')
+  // Right vertical stroke of H
+  doc.lines([[0,14]],sx+10,sy+2,null,'S')
+  // Cross bar of H
+  doc.lines([[8,0]],sx+2,sy+9,null,'S')
+  // Upward flourish from right stroke
+  doc.lines([[0,-8],[6,-4],[4,6]],sx+10,sy+4,null,'S')
+  // Lower loop/curl
+  doc.lines([[6,4],[-4,6],[-6,-2]],sx+10,sy+16,null,'S')
+  // Long underline sweep
+  doc.lines([[20,2],[10,-4]],sx+2,sy+18,null,'S')
 
-  // ── OFFICIAL STAMP ────────────────────────────────────────────────
-  // Signature line (left)
-  doc.setDrawColor(180,180,190)
+  doc.setDrawColor(...ink)
   doc.setLineWidth(0.5)
-  doc.line(mg, y+18, mg+60, y+18)
-  doc.setTextColor(...muted)
+  doc.line(mg,sy+22,mg+60,sy+22)
+  doc.setTextColor(...ink)
   doc.setFont('helvetica','bold')
   doc.setFontSize(8)
-  doc.text('Henry Gitau Michuku', mg, y+24)
+  doc.text('Henry Gitau Michuku',mg,sy+27)
   doc.setFont('helvetica','normal')
   doc.setFontSize(7.5)
-  doc.text('Chief Executive Officer', mg, y+29)
-  doc.text('StatVision Consultancy', mg, y+34)
+  doc.text('Chief Executive Officer',mg,sy+32)
+  doc.text('StatVision Consultancy',mg,sy+37)
 
-  // Circular stamp (right of signature)
-  const cx=mg+100, cy=y+18, rad=20
-  // outer ring
-  doc.setDrawColor(178,34,34)
-  doc.setLineWidth(1.2)
-  doc.circle(cx, cy, rad, 'S')
-  // inner ring
+  // ── BLUE SQUARE STAMP (centre) ───────────────────────────────────
+  const stx=mg+70, sty=sy, stw=55, sth=40
+  doc.setDrawColor(...blue)
+  doc.setLineWidth(1.5)
+  doc.rect(stx,sty,stw,sth,'S')
+  // inner border
   doc.setLineWidth(0.5)
-  doc.circle(cx, cy, rad-3, 'S')
-  // star decorations on ring
-  for(let i=0;i<12;i++){
-    const ang=(i/12)*Math.PI*2
-    const rx=(rad-1.5)*Math.cos(ang)+cx
-    const ry=(rad-1.5)*Math.sin(ang)+cy
-    doc.setFillColor(178,34,34)
-    doc.circle(rx,ry,0.5,'F')
-  }
-  // stamp text
-  doc.setTextColor(178,34,34)
+  doc.rect(stx+2,sty+2,stw-4,sth-4,'S')
+  // stamp content
+  doc.setTextColor(...blue)
   doc.setFont('helvetica','bold')
+  doc.setFontSize(7)
+  doc.text('STATVISION CONSULTANCY',stx+stw/2,sty+9,{align:'center'})
   doc.setFontSize(6)
-  doc.text('STATVISION CONSULTANCY', cx, cy-10, {align:'center'})
-  doc.setFontSize(5.5)
-  doc.text('NAIROBI · KENYA', cx, cy-5.5, {align:'center'})
-  doc.setFontSize(7.5)
-  doc.text('✓', cx, cy+1, {align:'center'})
-  doc.setFontSize(5.5)
-  doc.text('OFFICIALLY APPROVED', cx, cy+5, {align:'center'})
+  doc.text('NAIROBI, KENYA',stx+stw/2,sty+14,{align:'center'})
+  doc.setLineWidth(0.4)
+  doc.line(stx+6,sty+16,stx+stw-6,sty+16)
+  doc.setFontSize(isProforma?6.5:7)
+  doc.setFont('helvetica','bold')
+  doc.text(isProforma?'PROFORMA INVOICE':'OFFICIALLY APPROVED',stx+stw/2,sty+22,{align:'center'})
+  doc.setFontSize(6)
   doc.setFont('helvetica','normal')
-  doc.text(today, cx, cy+9.5, {align:'center'})
-  // CEO label curved under stamp
+  doc.text(today,stx+stw/2,sty+27,{align:'center'})
+  doc.line(stx+6,sty+29,stx+stw-6,sty+29)
   doc.setFont('helvetica','bold')
   doc.setFontSize(5.8)
-  doc.text('CEO: HENRY GITAU MICHUKU', cx, cy+14.5, {align:'center'})
+  doc.text('CEO: HENRY GITAU MICHUKU',stx+stw/2,sty+34,{align:'center'})
+  doc.setFont('helvetica','normal')
+  doc.setFontSize(5.5)
+  doc.text(isProforma?'Valid 30 days from issue':'StatVision Consultancy',stx+stw/2,sty+38.5,{align:'center'})
 
-  // Terms note (right of stamp)
+  // ── TERMS (right of stamp) ───────────────────────────────────────
   doc.setTextColor(...muted)
   doc.setFont('helvetica','normal')
   doc.setFontSize(7.5)
-  const terms=[
-    'Payment Terms: 50% deposit upon order confirmation.',
-    'Balance due upon delivery of final deliverable.',
+  const terms = isProforma ? [
+    'This proforma is valid for 30 days.',
+    '50% deposit required to confirm order.',
+    'A Tax Invoice will be issued upon deposit.',
+    'All prices in Kenya Shillings (KES).'
+  ] : [
+    'Payment Terms: 50% deposit, balance on delivery.',
+    'This is an official Tax Invoice.',
     'All prices are in Kenya Shillings (KES).',
-    'This invoice is valid for 30 days from date of issue.'
+    'Invoice valid for 30 days from date of issue.'
   ]
-  terms.forEach((t,i)=>doc.text(t, mg+130, y+10+i*5))
+  terms.forEach((t,i)=>doc.text(t,stx+stw+6,sty+10+i*6))
 
-  // ── FOOTER ────────────────────────────────────────────────────────
+  // ── FOOTER ───────────────────────────────────────────────────────
   doc.setFillColor(...navy)
-  doc.rect(0, ph-18, pw, 18, 'F')
+  doc.rect(0,ph-18,pw,18,'F')
   doc.setTextColor(200,210,230)
   doc.setFont('helvetica','normal')
   doc.setFontSize(7.5)
-  doc.text('StatVision Consultancy  ·  Nairobi, Kenya  ·  hello@statvisionconsultancy.co.ke  ·  +254 748 216 918', pw/2, ph-10, {align:'center'})
+  doc.text('StatVision Consultancy  ·  Nairobi, Kenya  ·  hello@statvisionconsultancy.co.ke  ·  +254 748 216 918',pw/2,ph-10,{align:'center'})
   doc.setTextColor(150,160,180)
   doc.setFontSize(6.5)
-  doc.text('This is an official system-generated document. For disputes or queries please contact us within 7 days of receipt.', pw/2, ph-5, {align:'center'})
+  const footNote = isProforma
+    ? 'This proforma invoice is for quotation purposes only and does not constitute a legal demand for payment.'
+    : 'This is an official system-generated Tax Invoice. For disputes contact us within 7 days of receipt.'
+  doc.text(footNote,pw/2,ph-5,{align:'center'})
 
-  doc.save(`StatVision-Invoice-${r.id}.pdf`)
+  return doc
 }
+
+function generateProformaInvoice(orderId){
+  const r=sqlData.find(x=>x.id===orderId)
+  if(!r){alert('Order not found.');return}
+  if(!window.jspdf){alert('PDF library not loaded — please refresh and try again.');return}
+  if(parseFloat(String(r.total||0).replace(/,/g,''))<=0){
+    alert('Cannot generate proforma — admin must set the price first.');return
+  }
+  buildInvoiceDoc(r,'proforma').save(`StatVision-Proforma-${r.id}.pdf`)
+}
+
+function generateStandardInvoice(orderId){
+  const r=sqlData.find(x=>x.id===orderId)
+  if(!r){alert('Order not found.');return}
+  if(!window.jspdf){alert('PDF library not loaded — please refresh and try again.');return}
+  if(parseFloat(String(r.deposit||0).replace(/,/g,''))<=0){
+    alert('Standard invoice is only available after a deposit payment has been confirmed.');return
+  }
+  buildInvoiceDoc(r,'standard').save(`StatVision-Invoice-${r.id}.pdf`)
+}
+
+// Keep old name as alias for any other callers (admin PDF button)
+function generateInvoicePDF(orderId){ generateStandardInvoice(orderId) }
 
 function renderAdminOverview(){
   const active=document.getElementById('adKpiActive')
