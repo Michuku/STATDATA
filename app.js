@@ -200,7 +200,7 @@ function renderMyOrders(email){
     wrap.innerHTML=mine.map(r=>{
       const files=getFiles(r.id)
       const deliverable=files.analyst.length?downloadLinksHTML(files.analyst):'<span style="color:var(--sl);font-size:.74rem">Not ready yet</span>'
-      return `<tr><td><strong>${r.id}</strong></td><td>${r.project}</td><td>${r.tool}</td><td>${r.analyst}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td><td>${deliverable}</td><td><button class="db1 dbb" onclick="generateInvoicePDF('${r.id}')">⬇ PDF</button></td></tr>`
+      return `<tr><td><strong>${r.id}</strong></td><td>${r.project}</td><td>${r.tool}</td><td>${r.analyst}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td><td>${deliverable}</td><td style="display:flex;gap:.3rem;flex-wrap:wrap"><button class="db1 dbb" onclick="generateInvoicePDF('${r.id}')">⬇ PDF</button><button class="db1" style="background:#00a651;color:#fff;border:none;padding:.32rem .6rem;border-radius:6px;font-size:.74rem;cursor:pointer" onclick="openMpesaModal('${r.id}')">💚 Pay</button></td></tr>`
     }).join('')
   }
   renderMyInvoices(mine)
@@ -235,7 +235,7 @@ function renderMyInvoices(mine){
       <td style="color:#107C10;font-weight:600">KES ${r.deposit}</td>
       <td style="${balColor};font-weight:700">KES ${r.balance}</td>
       <td>${statusLabel}</td>
-      <td style="display:flex;gap:.3rem;flex-wrap:wrap">${proBtn}${stdBtn}</td>
+      <td style="display:flex;gap:.3rem;flex-wrap:wrap">${proBtn}${stdBtn}<button class="db1" style="background:#00a651;color:#fff;border:none;white-space:nowrap;padding:.32rem .7rem;border-radius:6px;font-size:.74rem;cursor:pointer" onclick="openMpesaModal('${r.id}')">💚 Pay</button></td>
     </tr>`
   }).join('')
 }
@@ -535,6 +535,132 @@ function openPriceModal(orderId){
 function closePriceModal(){
   const m=document.getElementById('priceModal')
   if(m)m.style.display='none'
+}
+
+// ── MPESA PAYMENT MODAL ──────────────────────────────────────────────
+function openMpesaModal(orderId){
+  const r=sqlData.find(x=>x.id===orderId)
+  if(!r){alert('Order not found.');return}
+  const tot=moneyNum(r.total)
+  if(tot<=0){alert('Cannot pay yet — admin has not set the price for this order.');return}
+  const dep=Math.round(tot*0.5)
+  const bal=moneyNum(r.balance)
+  const amountToPay = bal>0 ? bal : dep
+
+  let m=document.getElementById('mpesaModal')
+  if(!m){
+    m=document.createElement('div')
+    m.id='mpesaModal'
+    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center'
+    document.body.appendChild(m)
+  }
+  m.innerHTML=`
+    <div style="background:#fff;border-radius:18px;padding:0;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(0,0,0,.3);overflow:hidden">
+      <!-- Header -->
+      <div style="background:#00a651;padding:1.4rem 1.6rem;display:flex;align-items:center;gap:.9rem">
+        <div style="width:44px;height:44px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem">💚</div>
+        <div>
+          <div style="color:#fff;font-weight:700;font-size:1.05rem;font-family:var(--fd)">Pay via M-Pesa</div>
+          <div style="color:rgba(255,255,255,.8);font-size:.78rem">Lipa Na M-Pesa · Till Number</div>
+        </div>
+        <button onclick="closeMpesaModal()" style="margin-left:auto;background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem">✕</button>
+      </div>
+      <!-- Order info -->
+      <div style="padding:1.2rem 1.6rem 0">
+        <div style="background:#f0faf4;border:1px solid #b7e5c9;border-radius:10px;padding:.9rem 1.1rem;margin-bottom:1.1rem">
+          <div style="font-size:.74rem;color:#546e7a;font-weight:600;margin-bottom:.3rem">ORDER REFERENCE</div>
+          <div style="font-weight:700;font-size:.95rem;color:#0d1b2a">${orderId} — ${(r.project||'').slice(0,45)}</div>
+        </div>
+        <!-- Steps -->
+        <div style="margin-bottom:1.1rem">
+          <div style="font-size:.8rem;font-weight:700;color:#0d1b2a;margin-bottom:.7rem">Follow these steps:</div>
+          ${[
+            ['1','Go to M-Pesa on your phone','Dial *334# or open M-Pesa app'],
+            ['2','Select <strong>Lipa na M-Pesa</strong>','Then select <strong>Buy Goods & Services</strong>'],
+            ['3','Enter Till Number','<span style="font-size:1.1rem;font-weight:800;color:#00a651;letter-spacing:2px">4136540</span>'],
+            ['4','Enter Amount','<strong style="color:#d13438">KES '+amountToPay.toLocaleString()+'</strong>'+(bal>0?' (balance due)':' (50% deposit)')],
+            ['5','Enter your M-Pesa PIN','Confirm the transaction'],
+            ['6','Enter your phone number below','So we can confirm your payment']
+          ].map(([n,title,sub])=>`
+            <div style="display:flex;gap:.8rem;margin-bottom:.65rem;align-items:flex-start">
+              <div style="min-width:24px;height:24px;background:#00a651;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;margin-top:.1rem">${n}</div>
+              <div><div style="font-size:.8rem;font-weight:600;color:#0d1b2a">${title}</div><div style="font-size:.76rem;color:#546e7a">${sub}</div></div>
+            </div>`).join('')}
+        </div>
+        <!-- Phone input -->
+        <div style="margin-bottom:.9rem">
+          <label style="font-size:.78rem;font-weight:600;color:#0d1b2a;display:block;margin-bottom:.35rem">Your M-Pesa Phone Number</label>
+          <input type="tel" id="mpesaPhone" placeholder="e.g. 0712 345 678" value="${r.phone||''}"
+            style="width:100%;padding:.6rem .9rem;border:1.5px solid #b7e5c9;border-radius:8px;font-size:.9rem;box-sizing:border-box"/>
+        </div>
+        <!-- Amount display -->
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#f8f9fa;border-radius:8px;padding:.7rem 1rem;margin-bottom:1rem">
+          <span style="font-size:.8rem;color:#546e7a">${bal>0?'Balance Due':'Required Deposit (50%)'}</span>
+          <strong style="font-size:1.1rem;color:#00a651">KES ${amountToPay.toLocaleString()}</strong>
+        </div>
+        <p id="mpesaStatus" style="font-size:.78rem;min-height:1rem;margin-bottom:.5rem;text-align:center"></p>
+        <input type="hidden" id="mpesaOrderId" value="${orderId}"/>
+        <input type="hidden" id="mpesaAmount" value="${amountToPay}"/>
+      </div>
+      <!-- Footer buttons -->
+      <div style="padding:.9rem 1.6rem 1.4rem;display:flex;gap:.65rem">
+        <button onclick="confirmMpesaPayment()" 
+          style="flex:1;background:#00a651;color:#fff;border:none;padding:.75rem;border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer;font-family:var(--fd)">
+          ✅ I Have Paid — Confirm
+        </button>
+        <button onclick="closeMpesaModal()"
+          style="background:#f0f0f0;color:#546e7a;border:none;padding:.75rem 1rem;border-radius:10px;font-weight:600;cursor:pointer">
+          Cancel
+        </button>
+      </div>
+    </div>`
+  m.style.display='flex'
+}
+
+function closeMpesaModal(){
+  const m=document.getElementById('mpesaModal')
+  if(m)m.style.display='none'
+}
+
+async function confirmMpesaPayment(){
+  const orderId=document.getElementById('mpesaOrderId').value
+  const amount=parseFloat(document.getElementById('mpesaAmount').value)||0
+  const phone=(document.getElementById('mpesaPhone').value||'').trim()
+  const statusEl=document.getElementById('mpesaStatus')
+  if(!phone){statusEl.style.color='#d13438';statusEl.textContent='⚠ Please enter your M-Pesa phone number.';return}
+  statusEl.style.color='#546e7a';statusEl.textContent='Submitting payment confirmation...'
+  try{
+    const r=sqlData.find(x=>x.id===orderId)
+    const currentDeposit=moneyNum(r?r.deposit:0)
+    const newDeposit=currentDeposit+amount
+    const newBalance=Math.max(0,moneyNum(r?r.total:0)-newDeposit)
+    const newStatus=newBalance<=0?'Confirmed':'In Progress'
+    // Update Firestore order with new deposit
+    await fbDB.collection('orders').doc(orderId).update({
+      deposit:String(newDeposit),
+      balance:String(newBalance),
+      status:newStatus,
+      mpesaPhone:phone,
+      mpesaPaidAt:Date.now()
+    })
+    // Notify admin
+    await fbDB.collection('notifications').add({
+      uid:'admin',
+      orderId,
+      icon:'💚',
+      title:`M-Pesa payment confirmation — ${orderId}`,
+      body:`Client ${r?r.client:'—'} (${phone}) reports payment of KES ${amount.toLocaleString()}. Please verify in M-Pesa and confirm.`,
+      tab:'orders',
+      read:false,
+      ts:Date.now()
+    })
+    statusEl.style.color='#00a651'
+    statusEl.textContent='✓ Confirmation sent! Admin will verify and update your order shortly.'
+    setTimeout(()=>closeMpesaModal(),2500)
+  }catch(e){
+    statusEl.style.color='#d13438'
+    statusEl.textContent='⚠ Error: '+e.message
+  }
 }
 async function savePriceAndConfirm(){
   const orderId=document.getElementById('pmOrderId').value
