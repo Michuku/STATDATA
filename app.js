@@ -161,6 +161,12 @@ async function staffLogin(){
     }
     currentStaffCache={name:data.name,email:data.email,role:data.role,uid:cred.user.uid}
     showPage(data.role==='admin'?'admin':'analyst')
+    if(data.role==='admin') subscribeAdminNotifications()
+    if(data.role==='analyst'){
+      // init analyst chat with first assigned order
+      const assigned=sqlData.filter(r=>r.analyst===data.name)
+      if(assigned.length) initAnalystChat(assigned[0].id, data.name)
+    }
   }catch(e){
     err.textContent='Incorrect email or password.'; err.style.display='block'
   }
@@ -189,6 +195,9 @@ function applyClientSession(u){
   pbiRenderClientPortal()
   renderClientDocs()
   subscribeNotifications(u.uid)
+  // init chat with first order
+  const mine=sqlData.filter(r=>r.email&&r.email.toLowerCase()===u.email.toLowerCase())
+  if(mine.length) initClientChat(mine[0].id, u.email)
 }
 function renderMyOrders(email){
   const wrap=document.getElementById('myOrdersBody')
@@ -1120,6 +1129,10 @@ function renderSQL(){
   const rw=document.getElementById('reportTableWrap')
   if(rw)rw.innerHTML=`<table><thead><tr><th>Order ID</th><th>Client</th><th>Email</th><th>Phone</th><th>Organisation</th><th>Project</th><th>Service</th><th>Tool</th><th>Format</th><th>Analyst</th><th>Deadline</th><th>Total</th><th>Deposit</th><th>Balance</th><th>Status</th></tr></thead><tbody>`+sqlData.map(r=>`<tr><td>${r.id}</td><td>${r.client}</td><td>${r.email}</td><td>${r.phone}</td><td>${r.org}</td><td>${r.project}</td><td>${r.service}</td><td>${r.tool}</td><td>${r.format}</td><td>${r.analyst}</td><td>${r.deadline}</td><td>KES ${r.total}</td><td>KES ${r.deposit}</td><td>KES ${r.balance}</td><td><span class="badge ${scls[r.status]||'b-pn'}">${r.status}</span></td></tr>`).join('')+`</tbody></table>`
   const cu=currentClient();if(cu){renderMyOrders(cu.email);pbiRenderClientPortal();renderClientDocs()}
+  // refresh admin tabs if open
+  if(document.getElementById('adtab-clients')&&document.getElementById('adtab-clients').style.display!=='none') renderAdminClients()
+  if(document.getElementById('adtab-finance')&&document.getElementById('adtab-finance').style.display!=='none') renderFinance()
+  if(document.getElementById('adtab-reports')&&document.getElementById('adtab-reports').style.display!=='none') renderReports()
   renderAnalystUI()
   renderProjectsTable()
   renderAdminOverview()
@@ -1366,6 +1379,8 @@ function adTab(n,btn){
   renderSQL()
   if(n==='finance') renderFinance()
   if(n==='reports') renderReports()
+  if(n==='clients') renderAdminClients()
+  if(n==='notifs') renderAdminNotifications([])
 }
 function filt(btn,f){btn.closest('.filt').querySelectorAll('.fb2').forEach(b=>b.classList.remove('on'));btn.classList.add('on')}
 function toggleCreateAnalyst(){const f=document.getElementById('createAnalystForm');f.style.display=f.style.display==='none'?'block':'none'}
@@ -1469,11 +1484,273 @@ function mPrev(){
 function openChat(){document.getElementById('chatPan').classList.toggle('open');document.querySelector('.cbdg').style.display='none'}
 const reps=['Great! How many variables and respondents does your dataset have?','That sounds like a great project. I would recommend SPSS or R for this. Shall I help you set up an order?','We handle data collection too — we design the questionnaire, deploy it, then analyse the results.','Turnaround is 3–7 days depending on complexity. We agree on a deadline when you place your order.','Click "Start Your Project" to submit your details and I will be assigned to your case right away!']
 let rIdx=0
-function sendChat(){
+// ══════════════════════════════════════════════════════════════════
+// LIVE CLIENTS TAB
+// ══════════════════════════════════════════════════════════════════
+function renderAdminClients(){
+  const wrap=document.getElementById('adtab-clients')
+  if(!wrap) return
+  // Build client map from real orders
+  const clientMap={}
+  sqlData.forEach(r=>{
+    const key=(r.email||'').toLowerCase()
+    if(!key) return
+    if(!clientMap[key]){
+      clientMap[key]={name:r.client,email:r.email,phone:r.phone,org:r.org||'—',orders:0,total:0,deposit:0,status:'Active'}
+    }
+    clientMap[key].orders++
+    clientMap[key].total+=moneyNum(r.total)
+    clientMap[key].deposit+=moneyNum(r.deposit)
+    if(r.status==='Pending') clientMap[key].status='New'
+  })
+  const clients=Object.values(clientMap).sort((a,b)=>b.total-a.total)
+  const rows=clients.length?clients.map(c=>`
+    <tr>
+      <td><strong>${c.name}</strong>${c.org&&c.org!=='—'?`<br/><span style="font-size:.7rem;color:var(--sl)">${c.org}</span>`:''}</td>
+      <td><a href="mailto:${c.email}" style="color:var(--b2)">${c.email}</a></td>
+      <td>${c.phone||'—'}</td>
+      <td>${c.orders}</td>
+      <td><strong style="color:var(--b2)">KES ${Math.round(c.total).toLocaleString()}</strong></td>
+      <td style="color:#107C10;font-weight:600">KES ${Math.round(c.deposit).toLocaleString()}</td>
+      <td style="color:#D13438">KES ${Math.round(c.total-c.deposit).toLocaleString()}</td>
+      <td><span class="badge ${c.status==='Active'?'b-dn':c.status==='New'?'b-pr':'b-pn'}">${c.status}</span></td>
+      <td><button class="db1 dbb" onclick="viewClientOrders('${c.email}')">View Orders</button></td>
+    </tr>`).join('')
+  :`<tr><td colspan="9" style="text-align:center;color:var(--sl);padding:1.4rem">No clients yet.</td></tr>`
+
+  wrap.innerHTML=`
+    <div class="kgd" style="margin-bottom:1.2rem">
+      <div class="kpi"><div class="kpic" style="background:#E3F2FD">👥</div><div><div class="kpiv">${clients.length}</div><div class="kpil">Total Clients</div></div></div>
+      <div class="kpi"><div class="kpic" style="background:#E8F5E9">✅</div><div><div class="kpiv">${clients.filter(c=>c.status==='Active').length}</div><div class="kpil">Active Clients</div></div></div>
+      <div class="kpi"><div class="kpic" style="background:#FFF3E0">🆕</div><div><div class="kpiv">${clients.filter(c=>c.status==='New').length}</div><div class="kpil">New Clients</div></div></div>
+      <div class="kpi"><div class="kpic" style="background:#F3E5F5">💰</div><div><div class="kpiv">KES ${Math.round(clients.reduce((s,c)=>s+c.total,0)).toLocaleString()}</div><div class="kpil">Total Client Value</div></div></div>
+    </div>
+    <div class="dtw">
+      <div class="dth"><h3>All Clients</h3><div class="dtha"><button class="db1 dbb" onclick="exportClientsCSV()">⬇ Export CSV</button></div></div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Orders</th><th>Total Value</th><th>Paid</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`
+}
+
+function viewClientOrders(email){
+  adTab('orders',null)
+  // scroll to and highlight orders for this client
+  setTimeout(()=>{
+    const rows=document.querySelectorAll('#adminOrderBody tr')
+    rows.forEach(r=>{r.style.background=r.textContent.includes(email)?'#FFF8E1':''})
+  },300)
+}
+
+function exportClientsCSV(){
+  const clientMap={}
+  sqlData.forEach(r=>{
+    const key=(r.email||'').toLowerCase();if(!key)return
+    if(!clientMap[key])clientMap[key]={name:r.client,email:r.email,phone:r.phone,org:r.org||'—',orders:0,total:0,deposit:0}
+    clientMap[key].orders++;clientMap[key].total+=moneyNum(r.total);clientMap[key].deposit+=moneyNum(r.deposit)
+  })
+  const rows=[['Name','Email','Phone','Organisation','Orders','Total Value (KES)','Paid (KES)','Balance (KES)']]
+  Object.values(clientMap).forEach(c=>rows.push([c.name,c.email,c.phone,c.org,c.orders,Math.round(c.total),Math.round(c.deposit),Math.round(c.total-c.deposit)]))
+  const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n')
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv)
+  a.download='StatVision-Clients.csv';a.click()
+}
+
+// ══════════════════════════════════════════════════════════════════
+// LIVE ADMIN NOTIFICATIONS (Firestore)
+// ══════════════════════════════════════════════════════════════════
+let _adminNotifUnsub=null
+function subscribeAdminNotifications(){
+  if(_adminNotifUnsub)_adminNotifUnsub()
+  _adminNotifUnsub=fbDB.collection('notifications')
+    .where('uid','==','admin')
+    .orderBy('ts','desc')
+    .limit(50)
+    .onSnapshot(snap=>{
+      const notifs=snap.docs.map(d=>({id:d.id,...d.data()}))
+      // also add system notifs from orders (new orders, payments)
+      renderAdminNotifications(notifs)
+      const unread=notifs.filter(n=>!n.read).length
+      const badge=document.querySelector('#page-admin .snav[onclick*="notifs"] .ndot')
+      if(badge){badge.style.display=unread?'inline':'none'}
+    },err=>console.warn('Admin notif listener:',err))
+}
+
+function renderAdminNotifications(notifs){
+  const wrap=document.getElementById('adtab-notifs')
+  if(!wrap)return
+  // also build system notifications from orders
+  const sysNotifs=sqlData.slice().reverse().slice(0,10).map(r=>({
+    id:'sys-'+r.id,
+    icon:r.status==='Completed'?'✅':r.status==='Pending'?'🆕':r.status==='Draft Review'?'📤':'📋',
+    title:`${r.status} — ${r.id}`,
+    body:`${r.client} · ${r.project} · ${r.analyst||'Unassigned'}`,
+    tab:'orders', read:true, ts:0, sys:true
+  }))
+  const all=[...notifs,...sysNotifs].sort((a,b)=>b.ts-a.ts)
+  const rows=all.map(n=>`
+    <div style="padding:.88rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem;${!n.read&&!n.sys?'background:#FFF8E1':''}">
+      <span style="font-size:1.2rem">${n.icon||'🔔'}</span>
+      <div style="flex:1">
+        <strong style="font-size:.84rem">${n.title}</strong>
+        <div style="font-size:.75rem;color:var(--sl)">${n.body}${n.ts?(' · '+timeAgo(n.ts)):''}</div>
+      </div>
+      ${n.tab?`<button class="db1 dbb" onclick="${n.sys?`adTab('${n.tab}',null)`:`markAdminNotifRead('${n.id}');adTab('${n.tab}',null)`}">View</button>`:''}
+    </div>`).join('')
+
+  wrap.innerHTML=`
+    <div class="dtw">
+      <div class="dth"><h3>Notification Centre</h3>
+        <div class="dtha"><button class="db1 dbb" onclick="markAllAdminNotifsRead()">Mark All Read</button></div>
+      </div>
+      <div style="padding:0">${rows||'<div style="padding:1.4rem;text-align:center;color:var(--sl)">No notifications yet.</div>'}</div>
+    </div>`
+}
+
+function markAdminNotifRead(id){
+  fbDB.collection('notifications').doc(id).update({read:true}).catch(()=>{})
+}
+function markAllAdminNotifsRead(){
+  fbDB.collection('notifications').where('uid','==','admin').where('read','==',false).get().then(snap=>{
+    const batch=fbDB.batch();snap.docs.forEach(d=>batch.update(d.ref,{read:true}));batch.commit()
+  })
+}
+
+// ══════════════════════════════════════════════════════════════════
+// AI-POWERED LIVE CHAT (Claude API)
+// ══════════════════════════════════════════════════════════════════
+const STAT_SYSTEM = `You are a helpful assistant for StatVision Consultancy, a professional data analysis and research services company based in Nairobi, Kenya. 
+
+Key facts:
+- Services: SPSS, Stata, R, Python, Power BI, Excel, EViews, JMP, Minitab analysis
+- Specialties: Thesis/dissertation analysis, NGO impact evaluation, business analytics, GIS mapping, machine learning
+- Pricing: Starting from KES 5,000 — depends on complexity, tool, and deadline
+- Turnaround: 24hrs to 2 weeks depending on project
+- Contact: +254 748 216 918, hello@statvisionconsultancy.co.ke
+- Payment: 50% deposit via M-Pesa Till 4136540 (Lipa na M-Pesa), card, or PayPal
+- Process: Submit project → Admin sets price → Client pays deposit → Analyst works → Draft review → Final delivery
+
+Be warm, professional, and helpful. Answer questions about services, pricing estimates, timelines, and processes. If asked about a specific project, encourage them to submit via the Start Project button. Keep responses concise (2-4 sentences max).`
+
+async function callClaudeAPI(messages){
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        system:STAT_SYSTEM,
+        messages
+      })
+    })
+    const data=await res.json()
+    return data.content?.[0]?.text||'I am sorry, I could not process that. Please call us on +254 748 216 918.'
+  }catch(e){
+    return 'I am having trouble connecting right now. Please call us on +254 748 216 918 or WhatsApp us.'
+  }
+}
+
+// Public chat widget (homepage)
+let publicChatHistory=[]
+async function sendChat(){
   const i=document.getElementById('chatIn'),m=i.value.trim();if(!m)return
   const c=document.getElementById('chatMsgs')
   c.innerHTML+=`<div class="msg c">${m}</div>`;i.value='';c.scrollTop=c.scrollHeight
-  setTimeout(()=>{c.innerHTML+=`<div class="msg a">${reps[rIdx%reps.length]}</div>`;c.scrollTop=c.scrollHeight;rIdx++},900)
+  c.innerHTML+=`<div class="msg a" id="chatTyping">...</div>`;c.scrollTop=c.scrollHeight
+  publicChatHistory.push({role:'user',content:m})
+  const reply=await callClaudeAPI(publicChatHistory)
+  publicChatHistory.push({role:'assistant',content:reply})
+  const typing=document.getElementById('chatTyping')
+  if(typing)typing.outerHTML=`<div class="msg a">${reply}</div>`
+  c.scrollTop=c.scrollHeight
+}
+
+// Client portal chat (client ↔ analyst via Firestore)
+let clientChatUnsub=null
+let currentChatOrderId=null
+
+function initClientChat(orderId, clientEmail){
+  currentChatOrderId=orderId
+  if(clientChatUnsub)clientChatUnsub()
+  const c=document.getElementById('clientMsgs');if(!c)return
+  c.innerHTML=''
+  clientChatUnsub=fbDB.collection('chats').doc(orderId)
+    .collection('messages').orderBy('ts','asc')
+    .onSnapshot(snap=>{
+      c.innerHTML=snap.docs.map(d=>{
+        const msg=d.data()
+        const isClient=msg.role==='client'
+        return `<div class="msg ${isClient?'c':'a'}" title="${new Date(msg.ts).toLocaleTimeString()}">
+          ${msg.text}
+          <span style="display:block;font-size:.65rem;opacity:.5;margin-top:.2rem">${msg.sender} · ${timeAgo(msg.ts)}</span>
+        </div>`
+      }).join('')
+      c.scrollTop=c.scrollHeight
+    },err=>console.warn('Chat listener:',err))
+}
+
+async function clientSend(){
+  const i=document.getElementById('clientChatIn'),m=i.value.trim();if(!m)return
+  const cu=currentClient();if(!cu)return
+  const c=document.getElementById('clientMsgs')
+  i.value=''
+  if(!currentChatOrderId){
+    // find first order for this client
+    const mine=sqlData.filter(r=>r.email&&r.email.toLowerCase()===cu.email.toLowerCase())
+    if(mine.length)currentChatOrderId=mine[0].id
+  }
+  if(!currentChatOrderId){
+    c.innerHTML+=`<div class="msg a">Please submit a project first before messaging an analyst.</div>`
+    return
+  }
+  // Save to Firestore
+  await fbDB.collection('chats').doc(currentChatOrderId).collection('messages').add({
+    text:m, role:'client', sender:cu.name||cu.email, ts:Date.now()
+  })
+  // Also write admin notification
+  await fbDB.collection('notifications').add({
+    uid:'admin', orderId:currentChatOrderId, icon:'💬',
+    title:`New message from ${cu.name||cu.email} — ${currentChatOrderId}`,
+    body:m.slice(0,80), tab:'orders', read:false, ts:Date.now()
+  })
+}
+
+// Analyst chat (reads same Firestore collection)
+let analystChatUnsub=null
+let currentAnalystChatOrderId=null
+
+function initAnalystChat(orderId, analystName){
+  currentAnalystChatOrderId=orderId
+  if(analystChatUnsub)analystChatUnsub()
+  const c=document.getElementById('analystMsgs');if(!c)return
+  c.innerHTML=''
+  analystChatUnsub=fbDB.collection('chats').doc(orderId)
+    .collection('messages').orderBy('ts','asc')
+    .onSnapshot(snap=>{
+      c.innerHTML=snap.docs.map(d=>{
+        const msg=d.data()
+        const isAnalyst=msg.role==='analyst'
+        return `<div class="msg ${isAnalyst?'a':'c'}" title="${new Date(msg.ts).toLocaleTimeString()}">
+          ${msg.text}
+          <span style="display:block;font-size:.65rem;opacity:.5;margin-top:.2rem">${msg.sender} · ${timeAgo(msg.ts)}</span>
+        </div>`
+      }).join('')
+      c.scrollTop=c.scrollHeight
+    },err=>console.warn('Analyst chat listener:',err))
+}
+
+async function analystSend(){
+  const i=document.getElementById('analystChatIn'),m=i.value.trim();if(!m)return
+  const st=currentStaff();if(!st)return
+  i.value=''
+  if(!currentAnalystChatOrderId){
+    c.innerHTML+=`<div class="msg c">Select an order first.</div>`;return
+  }
+  await fbDB.collection('chats').doc(currentAnalystChatOrderId).collection('messages').add({
+    text:m, role:'analyst', sender:st.name||st.email, ts:Date.now()
+  })
 }
 // ===== CLIENT PORTAL — REAL ACCOUNT DATA (no simulation) =====
 let pbiPaused = false;
