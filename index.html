@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>StatVision Consultancy — Data Analysis & Research Services</title>
+<title>StatVision Research and Consultancy — Data Analysis & Research Services</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="style.css">
 <script src="app.js" defer></script>
@@ -13,7 +13,7 @@
 <!-- NAV -->
 <nav id="mainNav">
   <div class="ni">
-    <a href="#" class="logo" onclick="showPage('home');return false">StatVision<span> Consultancy</span></a>
+    <a href="#" class="logo" onclick="showPage('home');return false">StatVision<span> Research & Consultancy</span></a>
     <ul class="nl">
       <li><a href="#" onclick="showPage('home');window.scrollTo(0,0);return false"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</a></li>
       <li><a href="#" onclick="showPage('home');scrollTo2('services');return false">Services</a></li>
@@ -42,29 +42,79 @@
     <div>
       <div class="hlbl">Professional Data Services</div>
       <h1>Your data,<br/>expertly <em>decoded.</em></h1>
-      <p class="hero-sub">StatVision Consultancy connects researchers, businesses, students, and organisations with expert data analysts. Submit your dataset — or let us collect it — and receive publication-ready results using SPSS, Stata, R, or Python.</p>
+      <p class="hero-sub">StatVision Research and Consultancy connects researchers, businesses, students, and organisations with expert data analysts. Submit your dataset — or let us collect it — and receive publication-ready results using SPSS, Stata, R, or Python.</p>
       <div class="hcon">📞 <a href="tel:+254748216918">+254 748 216 918</a>&nbsp;|&nbsp;📧 <a href="mailto:hello@statvisionconsultancy.co.ke" style="color:rgba(255,255,255,.65)">hello@statvisionconsultancy.co.ke</a>&nbsp;|&nbsp;📍 Nairobi, Kenya</div>
       <div class="hbtns">
         <a href="#" class="bp" onclick="openModal();return false">▶ Start Your Project</a>
         <a href="#" class="bo" onclick="openChat();return false">💬 Consult an Analyst</a>
       </div>
     </div>
-    <div class="pbiwrap">
-      <div class="cbhead" style="padding:0 0 .5rem 0">
-        <span class="cbtit" style="color:#605E5C">Statistical Visualisation Tools</span>
-        <span class="cbbadge live2" style="color:#107C10;background:#DFF6DD"><span></span>Live</span>
+    <div class="dboard-stage">
+      <div class="dboard-track" id="dboardTrack">
+        <!-- Slide 1 -->
+        <div class="dboard-slide">
+          <div class="dcard dcard-back">
+            <div class="dcard-head"><span class="dcdot r"></span><span class="dcdot y"></span><span class="dcdot g"></span></div>
+            <div class="dcard-body">
+              <div class="dc-title">Business Intelligence</div>
+              <div class="dc-row"><div class="dc-pie"></div><div class="dc-bars"><i style="height:40%"></i><i style="height:70%"></i><i style="height:55%"></i><i style="height:85%"></i></div></div>
+            </div>
+          </div>
+          <div class="dcard dcard-front">
+            <div class="dcard-head"><span class="dcdot r"></span><span class="dcdot y"></span><span class="dcdot g"></span><span class="dc-url">statvisionconsultancy.co.ke</span></div>
+            <div class="dcard-body">
+              <div class="dc-title">Data Visualisation Software</div>
+              <svg class="dc-line" viewBox="0 0 230 60"><polyline points="0,45 30,30 60,38 90,15 120,28 150,8 180,20 210,5" fill="none" stroke="#F5A623" stroke-width="2.5"/><polyline points="0,50 30,48 60,42 90,40 120,35 150,32 180,25 210,18" fill="none" stroke="#1565C0" stroke-width="2"/></svg>
+              <div class="dc-kpis"><div class="dc-kpi"><b>487</b><span>Projects</span></div><div class="dc-kpi"><b>97%</b><span>On-time</span></div><div class="dc-kpi"><b>4.9★</b><span>Rating</span></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Slide 2 -->
+        <div class="dboard-slide">
+          <div class="dcard dcard-back">
+            <div class="dcard-head"><span class="dcdot r"></span><span class="dcdot y"></span><span class="dcdot g"></span></div>
+            <div class="dcard-body">
+              <div class="dc-title">Statistical Reports</div>
+              <div class="dc-row"><div class="dc-donut"></div><div class="dc-bars"><i style="height:60%"></i><i style="height:35%"></i><i style="height:80%"></i><i style="height:50%"></i></div></div>
+            </div>
+          </div>
+          <div class="dcard dcard-front">
+            <div class="dcard-head"><span class="dcdot r"></span><span class="dcdot y"></span><span class="dcdot g"></span><span class="dc-url">statvisionconsultancy.co.ke</span></div>
+            <div class="dcard-body">
+              <div class="dc-title">SPSS · Stata · R · Python Analysis</div>
+              <div class="dc-grid4">
+                <div class="dc-mini"><div class="dc-minititle">Regression</div><div class="dc-minibar"><i style="width:78%"></i></div></div>
+                <div class="dc-mini"><div class="dc-minititle">ANOVA</div><div class="dc-minibar"><i style="width:62%;background:#1565C0"></i></div></div>
+                <div class="dc-mini"><div class="dc-minititle">Cluster</div><div class="dc-minibar"><i style="width:90%;background:#00897B"></i></div></div>
+                <div class="dc-mini"><div class="dc-minititle">Forecast</div><div class="dc-minibar"><i style="width:54%;background:#7B1FA2"></i></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Slide 3 -->
+        <div class="dboard-slide">
+          <div class="dcard dcard-back">
+            <div class="dcard-head"><span class="dcdot r"></span><span class="dcdot y"></span><span class="dcdot g"></span></div>
+            <div class="dcard-body">
+              <div class="dc-title">Client Dashboard</div>
+              <div class="dc-row"><div class="dc-pie alt"></div><div class="dc-bars"><i style="height:50%"></i><i style="height:90%"></i><i style="height:40%"></i><i style="height:65%"></i></div></div>
+            </div>
+          </div>
+          <div class="dcard dcard-front">
+            <div class="dcard-head"><span class="dcdot r"></span><span class="dcdot y"></span><span class="dcdot g"></span><span class="dc-url">statvisionconsultancy.co.ke</span></div>
+            <div class="dcard-body">
+              <div class="dc-title">Quick Identification of Latest Trends</div>
+              <svg class="dc-line" viewBox="0 0 230 60"><polyline points="0,40 30,42 60,20 90,30 120,10 150,22 180,12 210,6" fill="none" stroke="#00897B" stroke-width="2.5"/></svg>
+              <div class="dc-kpis"><div class="dc-kpi"><b>342+</b><span>Completed</span></div><div class="dc-kpi"><b>218+</b><span>Clients</span></div><div class="dc-kpi"><b>24+</b><span>Countries</span></div></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="pbitiles">
-        <div class="pbit pt-num"><div class="ptlbl">Opportunity Count</div><div class="ptbig" id="pt1">487</div></div>
-        <div class="pbit"><div class="ptlbl">Opportunity Trend</div><svg class="ptsvg" id="pt2" viewBox="0 0 110 50"></svg></div>
-        <div class="pbit"><div class="ptlbl">Opportunity Mix</div><svg class="ptsvg" id="pt3" viewBox="0 0 110 50"></svg></div>
-        <div class="pbit pt-num"><div class="ptlbl">Total Pipeline</div><div class="ptbig ptteal" id="pt4">$2bn</div></div>
-        <div class="pbit pt-wide"><div class="ptlbl">Opportunity Count by Month</div><svg class="ptsvg" id="pt5" viewBox="0 0 230 55"></svg></div>
-        <div class="pbit pt-wide"><div class="ptlbl">Average Revenue</div><svg class="ptsvg" id="pt6" viewBox="0 0 230 55"></svg></div>
-        <div class="pbit"><div class="ptlbl">Win Probability</div><svg class="ptsvg" id="pt7" viewBox="0 0 110 50"></svg></div>
-        <div class="pbit"><div class="ptlbl">Average Revenue</div><svg class="ptsvg" id="pt8" viewBox="0 0 110 50"></svg></div>
-        <div class="pbit pt-num"><div class="ptlbl">Estimated Revenue</div><div class="ptbig ptcoral" id="pt9">$461M</div></div>
-      </div>
+      <div class="dboard-dots" id="dboardDots"></div>
+      <!-- floating badge icons -->
+      <div class="dfloat df1">📊</div>
+      <div class="dfloat df2">🔄</div>
+      <div class="dfloat df3">✓</div>
     </div>
   </div>
   <!-- SERVICES TOP TICKER (scrolling L→R) -->
@@ -220,10 +270,10 @@
     <h2 class="st">What our clients say</h2>
     <div class="tgd2">
       <div class="testc fu"><div class="tstars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
-        <p class="ttext">StatVision Consultancy saved my dissertation. The analyst explained every regression output clearly, the APA report was perfect, and it was delivered two days early. Passed with distinction!</p>
+        <p class="ttext">StatVision Research and Consultancy saved my dissertation. The analyst explained every regression output clearly, the APA report was perfect, and it was delivered two days early. Passed with distinction!</p>
         <div class="tauth"><div class="tav">AM</div><div><div class="tname">Amina M.</div><div class="trole">MSc Economics, University of Nairobi</div></div></div></div>
       <div class="testc fu" style="transition-delay:.1s"><div class="tstars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
-        <p class="ttext">We needed an impact evaluation for our donor within two weeks. StatVision Consultancy delivered on time and the quality of the mixed-methods analysis exceeded our expectations. Highly recommended.</p>
+        <p class="ttext">We needed an impact evaluation for our donor within two weeks. StatVision Research and Consultancy delivered on time and the quality of the mixed-methods analysis exceeded our expectations. Highly recommended.</p>
         <div class="tauth"><div class="tav" style="background:var(--am);color:#0D1B2A">KO</div><div><div class="tname">Kevin O.</div><div class="trole">M&E Officer, Health NGO, Kenya</div></div></div></div>
       <div class="testc fu" style="transition-delay:.2s"><div class="tstars"><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
         <p class="ttext">The real-time chat made communication seamless. The Python cluster analysis revealed customer segments we had completely missed. Excellent turnaround and value for money.</p>
@@ -235,7 +285,7 @@
 <!-- CTA -->
 <section class="ctasec" id="contact">
   <h2>Ready to transform your data?</h2>
-  <p>Join 218+ clients who trust StatVision Consultancy. Call us now: <strong style="color:var(--am)">+254 748 216 918</strong></p>
+  <p>Join 218+ clients who trust StatVision Research and Consultancy. Call us now: <strong style="color:var(--am)">+254 748 216 918</strong></p>
   <div class="ctabtns">
     <a href="#" class="ba" onclick="openModal();return false">▶ Start Your Project</a>
     <a href="#" class="bw" onclick="openChat();return false">💬 Talk to an Analyst</a>
@@ -248,7 +298,7 @@
   <div class="fi">
     <div class="fgd">
       <div class="fbrand">
-        <a href="#" class="logo" onclick="showPage('home');return false">StatVision<span style="color:var(--am)"> Consultancy</span></a>
+        <a href="#" class="logo" onclick="showPage('home');return false">StatVision<span style="color:var(--am)"> Research & Consultancy</span></a>
         <p>Professional data analysis and research services. SPSS, Stata, R, Python. Serving students, businesses, NGOs, and governments. Nairobi, Kenya.</p>
       </div>
       <div class="fcol"><h4>Services</h4><ul>
@@ -268,7 +318,7 @@
         <li><a href="#">Privacy Policy</a></li></ul></div>
     </div>
     <div class="fbot">
-      <p>© 2025 StatVision Consultancy. All rights reserved. Nairobi, Kenya. Tel: +254 748 216 918</p>
+      <p>© 2025 StatVision Research and Consultancy. All rights reserved. Nairobi, Kenya. Tel: +254 748 216 918</p>
       <div class="socs"><a href="#" class="soc">in</a><a href="#" class="soc">𝕏</a><a href="#" class="soc">✆</a></div>
     </div>
   </div>
@@ -278,7 +328,7 @@
 <div id="page-clientauth" class="page">
   <div class="authwrap">
     <div class="authbox">
-      <div class="authlogo">StatVision<span> Consultancy</span></div>
+      <div class="authlogo">StatVision<span> Research & Consultancy</span></div>
       <div class="authtabs">
         <button class="authtab on" id="atab-login" onclick="authSwitch('login')">Log In</button>
         <button class="authtab" id="atab-signup" onclick="authSwitch('signup')">Create Account</button>
@@ -292,7 +342,7 @@
         <p class="authswitch">No account? <a href="#" onclick="authSwitch('signup');return false">Create one</a></p>
       </div>
       <div id="authpane-signup" style="display:none">
-        <p class="authsub">Create your StatVision Consultancy account to submit and track orders.</p>
+        <p class="authsub">Create your StatVision Research and Consultancy account to submit and track orders.</p>
         <div class="frow"><div class="fg"><label>Full Name</label><input type="text" id="su_name" placeholder="Your full name"/></div><div class="fg"><label>Phone</label><input type="tel" id="su_phone" placeholder="+254 7XX XXX XXX"/></div></div>
         <div class="fg"><label>Email Address</label><input type="email" id="su_email" placeholder="your@email.com"/></div>
         <div class="fg"><label>Password</label><input type="password" id="su_pass" placeholder="Create a password"/></div>
@@ -308,7 +358,7 @@
 <div id="page-client" class="page">
 <div class="dlayout">
   <div class="dsb">
-    <div class="dsb-logo">StatVision<span> Consultancy</span><span class="dsb-role">Client Portal</span></div>
+    <div class="dsb-logo">StatVision<span> Research & Consultancy</span><span class="dsb-role">Client Portal</span></div>
     <span class="slbl2">Main Menu</span>
     <button class="snav active" onclick="cTab('overview',this)"><span class="sni">📊</span>Overview</button>
     <button class="snav" onclick="cTab('orders',this)"><span class="sni">📋</span>My Orders</button>
@@ -506,7 +556,7 @@
 <div id="page-staffauth" class="page">
   <div class="authwrap">
     <div class="authbox">
-      <div class="authlogo">StatVision<span> Consultancy</span></div>
+      <div class="authlogo">StatVision<span> Research & Consultancy</span></div>
       <p class="authsub" style="text-align:center;margin-top:-.4rem">Staff Login — internal access only</p>
       <div class="fg"><label>Work Email</label><input type="email" id="st_email" placeholder="you@statvisionconsultancy.co.ke"/></div>
       <div class="fg"><label>Password</label><input type="password" id="st_pass" placeholder="••••••••"/></div>
@@ -519,7 +569,7 @@
 <div id="page-analyst" class="page">
 <div class="dlayout">
   <div class="dsb">
-    <div class="dsb-logo">StatVision<span> Consultancy</span><span class="dsb-role">Analyst Portal</span></div>
+    <div class="dsb-logo">StatVision<span> Research & Consultancy</span><span class="dsb-role">Analyst Portal</span></div>
     <span class="slbl2">Analyst Menu</span>
     <button class="snav active" onclick="anTab('overview',this)"><span class="sni">📊</span>My Dashboard</button>
     <button class="snav" onclick="anTab('assignments',this)"><span class="sni">📋</span>My Assignments<span class="ndot"></span></button>
@@ -667,7 +717,7 @@
 <div id="page-admin" class="page">
 <div class="dlayout">
   <div class="dsb">
-    <div class="dsb-logo">StatVision<span> Consultancy</span><span class="dsb-role">Admin Panel</span></div>
+    <div class="dsb-logo">StatVision<span> Research & Consultancy</span><span class="dsb-role">Admin Panel</span></div>
     <span class="slbl2">Administration</span>
     <button class="snav active" onclick="adTab('overview',this)"><span class="sni">📊</span>Overview</button>
     <button class="snav" onclick="adTab('orders',this)"><span class="sni">📋</span>All Orders<span class="ndot"></span></button>
@@ -686,7 +736,7 @@
   <div class="dmain">
     <div class="dtop">
       <div class="dtitle" id="adTabTitle">Admin Overview</div>
-      <div class="dusr"><div class="dav" style="background:var(--am);color:#0D1B2A">AD</div><div class="duname">Admin — StatVision Consultancy</div></div>
+      <div class="dusr"><div class="dav" style="background:var(--am);color:#0D1B2A">AD</div><div class="duname">Admin — StatVision Research and Consultancy</div></div>
     </div>
     <div class="dcontent">
       <!-- OVERVIEW -->
@@ -953,8 +1003,8 @@
 <!-- CHAT WIDGET -->
 <button class="chatbub" onclick="openChat()" aria-label="Chat with analyst">💬<span class="cbdg">1</span></button>
 <div class="chatpan" id="chatPan">
-  <div class="cphead"><div class="cav2">👩‍💻</div><div><h4>StatVision Consultancy Analyst</h4><p>Typically replies in minutes · +254 748 216 918</p></div><div class="odot"></div></div>
-  <div class="cmsgs" id="chatMsgs"><div class="msg a">Hi! 👋 Welcome to StatVision Consultancy. I'm here to help with your project. What kind of data analysis do you need?</div></div>
+  <div class="cphead"><div class="cav2">👩‍💻</div><div><h4>StatVision Research and Consultancy Analyst</h4><p>Typically replies in minutes · +254 748 216 918</p></div><div class="odot"></div></div>
+  <div class="cmsgs" id="chatMsgs"><div class="msg a">Hi! 👋 Welcome to StatVision Research and Consultancy. I'm here to help with your project. What kind of data analysis do you need?</div></div>
   <div class="cinp"><input type="text" id="chatIn" placeholder="Type your question..." onkeydown="if(event.key==='Enter')sendChat()"/><button class="csend" onclick="sendChat()">➤</button></div>
 </div>
 

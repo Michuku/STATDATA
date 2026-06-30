@@ -75,7 +75,7 @@ async function clientSignup(){
     await fbDB.collection('users').doc(cred.user.uid).set({name,phone,email,role:'client',created})
     currentClientCache={name,phone,email,created,uid:cred.user.uid}
     // welcome notification
-    await fbDB.collection('notifications').add({uid:cred.user.uid,orderId:null,icon:'🎉',title:'Welcome to StatVision Consultancy!',body:'Your account is ready. Submit your first project any time.',tab:null,read:false,ts:Date.now()})
+    await fbDB.collection('notifications').add({uid:cred.user.uid,orderId:null,icon:'🎉',title:'Welcome to StatVision Research and Consultancy!',body:'Your account is ready. Submit your first project any time.',tab:null,read:false,ts:Date.now()})
     showPage('client'); applyClientSession(currentClientCache)
   }catch(e){
     err.textContent = e.code==='auth/email-already-in-use' ? 'An account with this email already exists. Try logging in.'
@@ -730,7 +730,7 @@ function buildInvoiceDoc(r, type){
   doc.setTextColor(...white)
   doc.setFont('helvetica','bold')
   doc.setFontSize(20)
-  doc.text('StatVision Consultancy',mg,16)
+  doc.text('StatVision Research and Consultancy',mg,16)
   doc.setFont('helvetica','normal')
   doc.setFontSize(8.5)
   doc.setTextColor(200,210,230)
@@ -810,7 +810,7 @@ function buildInvoiceDoc(r, type){
   doc.setFont('helvetica','normal')
   doc.setFontSize(8.5)
   doc.setTextColor(...muted)
-  doc.text('StatVision Consultancy',mg+94,y+21)
+  doc.text('StatVision Research and Consultancy',mg+94,y+21)
   doc.text('Nairobi, Kenya',mg+94,y+27)
   doc.text('Deadline: '+(r.deadline||'TBD'),mg+94,y+32)
 
@@ -963,7 +963,7 @@ function buildInvoiceDoc(r, type){
   doc.setFont('helvetica','normal')
   doc.setFontSize(7.5)
   doc.text('Chief Executive Officer',mg,sy+32)
-  doc.text('StatVision Consultancy',mg,sy+37)
+  doc.text('StatVision Research and Consultancy',mg,sy+37)
 
   // ── BLUE SQUARE STAMP (centre) ───────────────────────────────────
   const stx=mg+70, sty=sy, stw=55, sth=40
@@ -994,7 +994,7 @@ function buildInvoiceDoc(r, type){
   doc.text('CEO: HENRY GITAU MICHUKU',stx+stw/2,sty+34,{align:'center'})
   doc.setFont('helvetica','normal')
   doc.setFontSize(5.5)
-  doc.text(isProforma?'Valid 30 days from issue':'StatVision Consultancy',stx+stw/2,sty+38.5,{align:'center'})
+  doc.text(isProforma?'Valid 30 days from issue':'StatVision Research and Consultancy',stx+stw/2,sty+38.5,{align:'center'})
 
   // ── TERMS (right of stamp) ───────────────────────────────────────
   doc.setTextColor(...muted)
@@ -1019,7 +1019,7 @@ function buildInvoiceDoc(r, type){
   doc.setTextColor(200,210,230)
   doc.setFont('helvetica','normal')
   doc.setFontSize(7.5)
-  doc.text('StatVision Consultancy  ·  Nairobi, Kenya  ·  hello@statvisionconsultancy.co.ke  ·  +254 748 216 918',pw/2,ph-10,{align:'center'})
+  doc.text('StatVision Research and Consultancy  ·  Nairobi, Kenya  ·  hello@statvisionconsultancy.co.ke  ·  +254 748 216 918',pw/2,ph-10,{align:'center'})
   doc.setTextColor(150,160,180)
   doc.setFontSize(6.5)
   const footNote = isProforma
@@ -1067,42 +1067,75 @@ function renderAdminOverview(){
   document.getElementById('adKpiClients').textContent=totalClients
   document.getElementById('adKpiBalance').textContent='KES '+Math.round(totalBalance).toLocaleString()
 
-  // Revenue summary (real numbers, no fake trend line)
-  const rs=document.getElementById('adRevenueSummary')
-  if(rs){
-    const totalValue=sqlData.reduce((s,r)=>s+moneyNum(r.total),0)
-    if(sqlData.length===0){
-      rs.innerHTML=`<p style="color:var(--sl);font-size:.84rem;text-align:center;padding:1.4rem 0">No orders have been made yet — revenue will appear here once clients submit and pay for projects.</p>`
-    } else {
-      rs.innerHTML=`
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .2rem;border-bottom:1px solid var(--br)"><span style="font-size:.84rem;color:var(--sl)">Total Order Value</span><strong style="font-family:var(--fd)">KES ${Math.round(totalValue).toLocaleString()}</strong></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .2rem;border-bottom:1px solid var(--br)"><span style="font-size:.84rem;color:var(--sl)">Total Collected (Deposits)</span><strong style="font-family:var(--fd);color:#107C10">KES ${Math.round(totalPaid).toLocaleString()}</strong></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .2rem"><span style="font-size:.84rem;color:var(--sl)">Outstanding Balance</span><strong style="font-family:var(--fd);color:#D13438">KES ${Math.round(totalBalance).toLocaleString()}</strong></div>`
+  // ── BAR CHART: Order volume last 6 months (white card) ──────────
+  const bc=document.getElementById('dxBarChart')
+  if(bc){
+    const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    const now=new Date()
+    const buckets=Array.from({length:6},(_,i)=>{
+      const d=new Date(now.getFullYear(),now.getMonth()-5+i,1)
+      return {label:months[d.getMonth()],count:0}
+    })
+    sqlData.forEach((r,i)=>{buckets[i%6].count++})
+    const max=Math.max(1,...buckets.map(b=>b.count))
+    const barW=36, gap=(320-buckets.length*barW)/(buckets.length+1)
+    let out=''
+    buckets.forEach((b,i)=>{
+      const h=Math.round((b.count/max)*90)
+      const x=gap+i*(barW+gap)
+      out+=`<rect x="${x}" y="${110-h}" width="${barW}" height="${h}" rx="6" fill="#107C41" opacity="${i===buckets.length-1?1:.55}"/>`
+      out+=`<text x="${x+barW/2}" y="${110-h-6}" text-anchor="middle" font-size="9" font-weight="700" fill="#0D1B2A">${b.count}</text>`
+      out+=`<text x="${x+barW/2}" y="125" text-anchor="middle" font-size="8" fill="#8A8886">${b.label}</text>`
+    })
+    bc.innerHTML=sqlData.length?out:`<text x="160" y="70" text-anchor="middle" font-size="11" fill="#90A4AE">No orders yet</text>`
+  }
+
+  // ── DONUT CHART: status mix (dark card) ──────────────────────────
+  const sc=document.getElementById('adStatusChart')
+  const legend=document.getElementById('adStatusLegend')
+  const centerEl=document.getElementById('adStatusCenter')
+  if(sc){
+    const order=['Pending','Confirmed','In Progress','Draft Review','Completed','Overdue']
+    const colors={'Pending':'#F5A623','Confirmed':'#42A5F5','In Progress':'#4FD1A5','Draft Review':'#9C7CF5','Completed':'#107C41','Overdue':'#FF6B6B'}
+    const counts=order.map(s=>sqlData.filter(r=>r.status===s).length)
+    const total=sqlData.length||1
+    const used=order.map((s,i)=>({s,c:counts[i]})).filter(d=>d.c>0)
+    const cx=65,cy=65,r=52,rInner=32
+    let angle=-90, segs=''
+    used.forEach(({s,c})=>{
+      const frac=c/total
+      const a1=angle, a2=angle+frac*360
+      const x1=cx+r*Math.cos(a1*Math.PI/180), y1=cy+r*Math.sin(a1*Math.PI/180)
+      const x2=cx+r*Math.cos(a2*Math.PI/180), y2=cy+r*Math.sin(a2*Math.PI/180)
+      const large=frac>0.5?1:0
+      segs+=`<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z" fill="${colors[s]}"/>`
+      angle=a2
+    })
+    sc.innerHTML = sqlData.length ? `${segs}<circle cx="${cx}" cy="${cy}" r="${rInner}" fill="#16243A"/>` : `<circle cx="65" cy="65" r="52" fill="rgba(255,255,255,.05)"/>`
+    if(centerEl) centerEl.innerHTML = `<b>${sqlData.length}</b><span>Orders</span>`
+    if(legend){
+      legend.innerHTML = used.length ? used.map(({s,c})=>`<div><span><i style="background:${colors[s]}"></i>${s}</span><b>${c}</b></div>`).join('') : `<div style="color:rgba(255,255,255,.4);text-align:center;padding:.5rem 0">No orders yet</div>`
     }
   }
 
-  // Status breakdown chart (real counts only)
-  const sc=document.getElementById('adStatusChart')
-  if(sc){
-    const order=['Pending','Confirmed','In Progress','Draft Review','Completed','Overdue']
-    const colors={'Pending':'#F5A623','Confirmed':'#42A5F5','In Progress':'#1976D2','Draft Review':'#9C27B0','Completed':'#43A047','Overdue':'#E53935'}
-    const counts=order.map(s=>sqlData.filter(r=>r.status===s).length)
-    const max=Math.max(1,...counts)
-    if(sqlData.length===0){
-      sc.innerHTML=`<text x="140" y="78" text-anchor="middle" font-size="11" fill="#90A4AE">No orders yet</text>`
-    } else {
-      const used=order.filter((s,i)=>counts[i]>0)
-      const usedCounts=counts.filter(c=>c>0)
-      const slotW=260/Math.max(1,used.length)
-      let out=''
-      used.forEach((s,i)=>{
-        const c=usedCounts[i], h=(c/max)*95, x=10+i*slotW, w=Math.min(45,slotW-15)
-        out+=`<rect x="${x}" y="${120-h}" width="${w}" height="${h}" rx="5" fill="${colors[s]}" opacity=".88"/>`
-        out+=`<text x="${x+w/2}" y="${120-h-7}" text-anchor="middle" font-size="10" font-weight="700" fill="${colors[s]}">${c}</text>`
-        out+=`<text x="${x+w/2}" y="135" text-anchor="middle" font-size="7.5" fill="#546E7A">${s}</text>`
-      })
-      sc.innerHTML=out
-    }
+  // ── TOP ANALYSTS (dark card) ──────────────────────────────────────
+  const ta=document.getElementById('adTopAnalysts')
+  if(ta){
+    const map={}
+    sqlData.forEach(r=>{
+      const a=r.analyst||'Unassigned'
+      if(!map[a])map[a]={orders:0,revenue:0}
+      map[a].orders++; map[a].revenue+=moneyNum(r.total)
+    })
+    const top=Object.entries(map).filter(([a])=>a!=='Unassigned').sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,4)
+    ta.innerHTML = top.length ? top.map(([name,d])=>{
+      const initials=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()
+      return `<div class="dxanalyst-row">
+        <div class="dxanalyst-av">${initials}</div>
+        <div><div class="dxanalyst-name">${name}</div><div class="dxanalyst-sub">${d.orders} orders</div></div>
+        <div class="dxanalyst-val">KES ${Math.round(d.revenue/1000)}k</div>
+      </div>`
+    }).join('') : `<div style="color:rgba(255,255,255,.4);text-align:center;padding:.6rem 0;font-size:.78rem">No analysts assigned yet</div>`
   }
 
   // Recent activity (built from real orders, most recent first)
@@ -1113,7 +1146,7 @@ function renderAdminOverview(){
     } else {
       ra.innerHTML=sqlData.slice(-6).reverse().map(r=>{
         const icon=r.status==='Completed'?'✅':r.status==='Draft Review'?'📤':r.status==='Pending'?'🆕':'📋'
-        return `<div style="padding:.85rem 1.4rem;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:.85rem"><span>${icon}</span><div style="flex:1"><strong style="font-size:.84rem">${r.id} — ${r.project}</strong><div style="font-size:.75rem;color:var(--sl)">${r.client} · Analyst: ${r.analyst} · <span class="badge ${scls[r.status]||'b-pn'}" style="font-size:.65rem">${r.status}</span></div></div><button class="db1 dbb" onclick="adTab('orders',null)">View</button></div>`
+        return `<div class="dxactivity-row"><span>${icon}</span><div style="flex:1"><strong>${r.id}</strong> — ${r.project}<div style="font-size:.7rem;color:var(--sl)">${r.client} · ${r.analyst||'Unassigned'} · <span class="badge ${scls[r.status]||'b-pn'}" style="font-size:.62rem">${r.status}</span></div></div><button class="db1 dbb" style="font-size:.68rem;padding:.25rem .6rem" onclick="adTab('orders',null)">View</button></div>`
       }).join('')
     }
   }
@@ -1341,7 +1374,7 @@ function exportCSV(){
   const h=['Order ID','Client','Email','Phone','Organisation','Project','Service','Tool','Format','Analyst','Deadline','Total','Deposit','Balance','Status']
   const rows=sqlData.map(r=>[r.id,r.client,r.email,r.phone,r.org,r.project,r.service,r.tool,r.format,r.analyst,r.deadline,'KES '+r.total,'KES '+r.deposit,'KES '+r.balance,r.status].map(v=>`"${v}"`).join(','))
   const c=[h.join(','),...rows].join('\n')
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(c);a.download='StatVision Consultancy_Orders.csv';a.click()
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(c);a.download='StatVision Research and Consultancy_Orders.csv';a.click()
 }
 window.addEventListener('load',renderSQL)
 
@@ -1438,7 +1471,7 @@ async function submitOrder(){
     method:'POST',
     headers:{'Content-Type':'application/json',Accept:'application/json'},
     body:JSON.stringify({
-      _subject:`New StatVision Consultancy Order — ${data.name}`,
+      _subject:`New StatVision Research and Consultancy Order — ${data.name}`,
       _replyto:data.email,
       attached_files:clientFiles.map(f=>f.name).join(', ')||'None',
       ...data
@@ -1620,7 +1653,7 @@ function markAllAdminNotifsRead(){
 // ══════════════════════════════════════════════════════════════════
 // AI-POWERED LIVE CHAT (Claude API)
 // ══════════════════════════════════════════════════════════════════
-const STAT_SYSTEM = `You are a helpful assistant for StatVision Consultancy, a professional data analysis and research services company based in Nairobi, Kenya. 
+const STAT_SYSTEM = `You are a helpful assistant for StatVision Research and Consultancy, a professional data analysis and research services company based in Nairobi, Kenya. 
 
 Key facts:
 - Services: SPSS, Stata, R, Python, Power BI, Excel, EViews, JMP, Minitab analysis
@@ -2228,7 +2261,7 @@ function renderReports(){
 function downloadReportExcel(){
   const mn=v=>parseFloat(String(v||0).replace(/,/g,''))||0
   const rows=[
-    ['StatVision Consultancy — Full Statistical Report'],
+    ['StatVision Research and Consultancy — Full Statistical Report'],
     ['Generated: '+new Date().toLocaleDateString('en-GB')],
     [],
     ['Order ID','Client','Email','Phone','Organisation','Project','Service','Tool','Format','Analyst','Deadline','Total (KES)','Deposit (KES)','Balance (KES)','Status']
@@ -2270,7 +2303,7 @@ function downloadReportPDF(){
   doc.setFillColor(...navy);doc.rect(0,0,pw,38,'F')
   doc.setFillColor(...gold);doc.rect(0,38,pw,2,'F')
   doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(16)
-  doc.text('StatVision Consultancy',mg,14)
+  doc.text('StatVision Research and Consultancy',mg,14)
   doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(200,210,230)
   doc.text('Statistical Business Report — Comprehensive Analytics',mg,21)
   doc.text('Generated: '+today+'   |   Total Orders Analysed: '+n,mg,27)
@@ -2336,7 +2369,36 @@ function downloadReportPDF(){
   // Footer
   doc.setFillColor(...navy);doc.rect(0,287,pw,10,'F')
   doc.setTextColor(200,210,230);doc.setFont('helvetica','normal');doc.setFontSize(7)
-  doc.text('StatVision Consultancy · Nairobi, Kenya · hello@statvisionconsultancy.co.ke · Confidential',pw/2,293,{align:'center'})
+  doc.text('StatVision Research and Consultancy · Nairobi, Kenya · hello@statvisionconsultancy.co.ke · Confidential',pw/2,293,{align:'center'})
 
   doc.save('StatVision-Business-Report-'+new Date().toISOString().slice(0,10)+'.pdf')
 }
+
+// ══════════════════════════════════════════════════════════════════
+// ROLLING DASHBOARD MOCKUP CAROUSEL (hero section)
+// ══════════════════════════════════════════════════════════════════
+let dboardIdx=0, dboardTimer=null
+function initDboardCarousel(){
+  const track=document.getElementById('dboardTrack')
+  if(!track) return
+  const slides=track.querySelectorAll('.dboard-slide')
+  const dotsWrap=document.getElementById('dboardDots')
+  if(!slides.length) return
+  dotsWrap.innerHTML = Array.from(slides).map((_,i)=>`<span data-i="${i}" onclick="goDboard(${i})"></span>`).join('')
+  const dots=dotsWrap.querySelectorAll('span')
+  function show(i){
+    slides.forEach((s,j)=>s.classList.toggle('active',j===i))
+    dots.forEach((d,j)=>d.classList.toggle('on',j===i))
+    dboardIdx=i
+  }
+  window.goDboard=function(i){show(i);resetDboardTimer()}
+  function resetDboardTimer(){
+    if(dboardTimer)clearInterval(dboardTimer)
+    dboardTimer=setInterval(()=>show((dboardIdx+1)%slides.length),3500)
+  }
+  show(0)
+  resetDboardTimer()
+}
+document.addEventListener('DOMContentLoaded',initDboardCarousel)
+// also try immediately in case DOMContentLoaded already fired
+if(document.readyState==='complete'||document.readyState==='interactive') setTimeout(initDboardCarousel,100)
